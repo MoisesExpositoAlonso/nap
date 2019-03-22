@@ -395,27 +395,27 @@ class GPROPOSAL{
               minhere=g(randomIndex)- (bw *(bmax-bmin)) ;
               maxhere=g(randomIndex)+ (bw *(bmax-bmin));
               newval= runif_reflect(minhere,maxhere,bmin,bmax); break;
-            case 1: 
+            case 1:
               minhere=g(randomIndex)- (bw *(amax-amin)) ;
               maxhere=g(randomIndex)+ (bw *(amax-amin));
               newval= runif_reflect(minhere,maxhere,amin,amax); break;
-            case 2: 
+            case 2:
               minhere=g(randomIndex)- (bw *(pmax-pmin)) ;
               maxhere=g(randomIndex)+ (bw *(pmax-pmin));
               newval= runif_reflect(minhere,maxhere,pmin,pmax); break;
-            case 3: 
+            case 3:
               minhere=g(randomIndex)- (bw *(mumax-mumin)) ;
               maxhere=g(randomIndex)+ (bw *(mumax-mumin));
               newval= runif_reflect(minhere,maxhere,mumin,mumax); break;
-            case 4: 
+            case 4:
               minhere=g(randomIndex)- (bw *(epimax-epimin)) ;
               maxhere=g(randomIndex)+ (bw *(epimax-epimin));
               newval= runif_reflect(minhere,maxhere,epimin,epimax); break;
-            case 5: 
+            case 5:
               minhere=g(randomIndex)- (bw *(svarmax-svarmin)) ;
               maxhere=g(randomIndex)+ (bw *(svarmax-svarmin));
               newval= runif_reflect(minhere,maxhere,svarmin,svarmax); break;
-            case 6: 
+            case 6:
               minhere=g(randomIndex)- (bw *(ssmax-ssmin)) ;
               maxhere=g(randomIndex)+ (bw *(ssmax-ssmin));
               newval= runif_reflect(minhere,maxhere,ssmin,ssmax); break;
@@ -434,9 +434,9 @@ class GPROPOSAL{
 // [[Rcpp::export]]
 void test_GProposal(double b=1,
                     double a=1,
-                    double p=1, 
+                    double p=1,
                     double mu=1,
-                    double epi=1, 
+                    double epi=1,
                     double svar=1,
                     double ss=0.1,
                     int iter=3,bool verbose = true){
@@ -1214,12 +1214,12 @@ List gwsMCMC(
                  gproposal(4)
                           );
       cout << prob(0) << endl;
-      
-       
+
+
     ///////////////////////////////////////////////////////////////////////////
     /// Handle -inf probability starts
     ///////////////////////////////////////////////////////////////////////////
-        
+
     if(std::isinf(prob(0)) || std::isnan(prob(0)) ){
       cout << "Posterior is infinite!!!. Attempt changing starting values" << endl;
       // stop("Posterior is infinite!!!. Attempt changing stargin values");
@@ -1229,8 +1229,8 @@ List gwsMCMC(
       // Named("posterior") = prob,
       // Named("accept") = paccepts);
       // }else{
-      
-    
+
+
       PROPOSAL Propattempt(bw,
                       s.n_elem,
                       min,
@@ -1255,7 +1255,6 @@ List gwsMCMC(
       }
      if(std::isinf(prob(0)) || std::isnan(prob(0))  ){ stop("Posterior is infinite!!!. Attempt changing stargin values"); }
       cout << "Successful after " << attemptcounter << " attempts " << endl;
-
     }
 
 
