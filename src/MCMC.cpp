@@ -61,11 +61,11 @@ arma::Mat<double> BMsubset(SEXP A, const arma::uvec & myrows, const arma::uvec &
                                       // consider saying true, perhaps is faster
       // Subset matrix
     	if(myrows.n_elem == X0.n_rows){
-    		X0=X0.cols(mycols);
+    		X0=X0.cols(mycols-1); // BUG CHECK - position 0 vs 1 in R
     	}else if(mycols.n_elem == X0.n_rows){
-    	  X0=X0.rows(myrows);
+    	  X0=X0.rows(myrows-1);// BUG CHECK - position 0 vs 1 in R
     	}else{
-    		X0=X0.submat(myrows,mycols);
+    		X0=X0.submat(myrows-1,mycols-1);// BUG CHECK - position 0 vs 1 in R
     	}
       return(X0);
 }
@@ -138,6 +138,22 @@ arma::mat LDrelative(arma::mat X, bool debug = false){
   return(R2);
 }
 
+// [[Rcpp::export]]
+double modeC(const arma::vec& ar){
+  return(arma::median(ar));
+}
+
+// [[Rcpp::export]]
+arma::vec modeCmat(const arma::mat& ar){
+  arma::vec res(ar.n_rows);
+  res.fill(0.0);
+  for(int i=0; i<ar.n_rows; i++){
+    double tmp=arma::median(ar.row(i));
+    res(i) = tmp;
+  }
+  return(res);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// GWA
 ////////////////////////////////////////////////////////////////////////////////
@@ -179,9 +195,9 @@ arma::colvec BMmgwa( arma::mat X0,
                      arma::colvec & yraw,
                     bool debug=false) {
       /////////////////////////
-   	// Centering
-    arma::mat X=Xmcenter(X0);
-    arma::vec y = (yraw/arma::mean(yraw) ) - 1;
+ 	// Centering
+  arma::mat X=Xmcenter(X0);
+  arma::vec y = (yraw/arma::mean(yraw) ) - 1;
   // Ordineary Least Squares
   arma::colvec coef(X.n_cols);
 	arma::colvec val;
@@ -195,9 +211,38 @@ arma::colvec BMmgwa( arma::mat X0,
  return(coef);
 }
 
+// [[Rcpp::export]]
+arma::colvec BMcgwa(arma::mat X0,const arma::vec & yraw) {
+   	// Centering
+    arma::mat X=Xmcenter(X0);
+    arma::vec y = (yraw/arma::mean(yraw) ) - 1;
+    // Ordineary Least Squares
+	arma::colvec coef = solve(X,y);
+ return(coef);
+}
 
+// [[Rcpp::export]]
+arma::vec BMridge(arma::mat X0,const arma::colvec & yraw,
+             const double & lambda=1) {
+ 	// Centering
+  arma::mat X=Xmcenter(X0);
+  arma::vec y = (yraw/arma::mean(yraw) ) - 1;
+  // Precompute some values
+	int n = X.n_rows;
+	int p = X.n_cols;
 
+	arma::vec coef(p, fill::zeros);
+	colvec y_tilde = join_cols(y, arma::zeros<colvec>(p));
 
+		mat X_tilde = join_cols(X, sqrt(lambda) * eye(p, p));
+		mat Q, R;
+		qr_econ(Q, R, X_tilde);
+		coef = solve(R, Q.t() * y_tilde);
+
+  return coef;
+	// return List::create(Named("coef") = coef,
+	//           					Named("lambda") = lambda);
+}
 ////////////////////////////////////////////////////////////////////////////////
 /// Utilities
 ////////////////////////////////////////////////////////////////////////////////
@@ -289,7 +334,7 @@ double runif_reflect(double minhere,double maxhere,double min,double max){
 ///// Find which selection coefficient is different in vector
 // [[Rcpp::export]]
 int whichchanged(const arma::vec & s1, const arma::vec & s2){
-  int index=-9;
+  int index= -9;
   int count=0;
   for(int i=0;i<s1.size();i++){
     if(s1(i) != s2(i)){ index=i; count++;}
@@ -380,7 +425,8 @@ double ePRIOR(double e, double const & m=1, double const & v=0.2){
   return(R::dnorm(e,m,v,true));
 }
 
-  // update probabilities
+// update probabilities
+//[[Rcpp::export]]
 double uPRIOR ( double pri,
                 const arma::colvec & s0,
                 const arma::colvec & s1,
@@ -395,11 +441,13 @@ double uPRIOR ( double pri,
     break;
   case 2: // true
     int position = whichchanged(s0,s1);
-    double L0, L1;
-    L0 = logmixgaussian(s0(position),par10,par20);
-    L1 = logmixgaussian(s1(position),par11,par21);
-    pri-=L0;
-    pri+=L1;
+    if(position != -9){
+      double L0, L1;
+      L0 = logmixgaussian(s0(position),par10,par20);
+      L1 = logmixgaussian(s1(position),par11,par21);
+      pri-=L0;
+      pri+=L1;
+    }
     return(pri);
     break;
   }
@@ -417,30 +465,39 @@ double LLGaussMix(const double & y, const double & w, const double & v, const do
 return log(LL);
 }
 
+// [[Rcpp::export]]
 double LIKELIHOOD(const arma::vec & y,
                   const arma::vec & hs,
                   const arma::vec & w,
                   const double & b, const double & a,
                   const double & p, const double & mu,
                   const double & epi,
-                  bool verbose=false){
-  arma::vec w_;
-  if(epi==1){w_=pow(w,epi);}
-  else{w_=w;}
-
+                  bool verbose=false,int LIKmode=2){
   double L=0;
-  double LL;
-    for(int i=0; i< y.n_elem ; i ++){ // check for infinity
-      LL= LLGaussMix(y(i)/mu,w_(hs(i)),w_(hs(i))*b+a,p);
+  switch(LIKmode){
+  case 1: // moc likelihood
+    break;
+  case 2:
+    arma::vec w_;
+    if(epi==1){w_=pow(w,epi);}
+    else{w_=w;}
 
-      if(verbose and std::isinf(LL)){
-        cout << "---" << endl;
-        cout << i << endl;
-        cout << y(i) << " "<< w_(hs(i)) << " "<< w_(hs(i))*b+a <<" "<< p << endl;
-        cout << LL << endl;
+    double LL;
+      for(int i=0; i< y.n_elem ; i ++){ // check for infinity
+        LL= LLGaussMix(y(i)/mu,w_(hs(i)),w_(hs(i))*b+a,p);
+
+        // if(verbose and std::isinf(LL)){
+        if(std::isinf(LL)){
+          cout << "---" << endl;
+          cout << i << endl;
+          cout << y(i) << " "<< w_(hs(i)) << " "<< w_(hs(i))*b+a <<" "<< p << endl;
+          cout << LL << endl;
+        }
+        L += LL;
       }
-      L += LL;
-    }
+    break;
+  };
+  // cout<< L << endl; /////// CHECKING LIKELIHOOD!
   return(L);
 }
 
@@ -561,7 +618,7 @@ class NAP{
     // hyperparameters
     double b; double bmin; double bmax;
     double a; double amin; double amax;
-    double p; double pmin=0; double pmax=1;
+    double p; double pmin; double pmax;
     double mu; double mumin; double mumax;
     double epi; double epimin; double epimax;
     double svar; double svarmin; double svarmax;
@@ -580,8 +637,10 @@ class NAP{
     int nupdates=1; // 0 for all
     bool verbose=false;
     bool test=false;
-    double bw=0.1;
+    double updateratio= -9.0;
+    double bw=0.001; /// BANDWIDT OF CHANGES IS REALLY IMPORTANT HARDCODED PARAM.
     int iterations=1000;
+    double burnin=0.1;
     int iter=0;
     int Smode; int PRImode; int LIKmode ;int FITmode;
 
@@ -598,29 +657,31 @@ class NAP{
             const arma::vec & y_,
             const arma::vec & h,
             const SEXP & A_, // instead of arma::mat X,
-            const arma::uvec & m, // the positions of SNPs
+            const arma::uvec & m, // the positions of SNPs // check start 0 vs 1
             const arma::uvec & n , // the positions of individuals
             arma::vec & s_,
 
             double b_=0.5,double bmin_=0,double bmax_=1,
             double a_=0.1,double amin_=0,double amax_=1,
-            double p_=0.5,
+            double p_=0.5,double pmin_=0,double pmax_=1,
             double mu_=1,double mumin_=0, double mumax_=50,
             double epi_=1,double epimin_=0.5, double epimax_=2,
             double svar_=0.1,double svarmin_=0, double svarmax_=5,
             double ss_=0.1,double ssmin_=0, double ssmax_=1,
             double smin_=-0.98039215686274505668, double smax_=50,
 
-            int iterations_=1000,
-            int Smode_=2,int LIKmode_=3, int PRImode_=2, int FITmode_=3,
+            int iterations_=1000, double burnin_=0.1,
+            int Smode_=2,int LIKmode_=3, int PRImode_=2, int FITmode_=2,
             bool verbose_=false,
-            bool test_=false
+            bool test_=false,
+            double updateratio_ = -9.0,
+            double bw_=0.01
             ){
       ////////////////
       // Initialize //
       b=b_;bmin=bmin_;bmax=bmax_;
       a=a_;amin=amin_;amax=amax_;
-      p=p_;
+      p=p_;pmin=pmin_;pmax=pmax_;
       mu=mu_;mumin=mumin_;mumax=mumax_;
       epi=epi_;epimin=epimin_;epimax=epimax_;
       svar=svar_;svarmin=svarmin_;svarmax=svarmax_;
@@ -632,10 +693,13 @@ class NAP{
       nind=n.n_elem;
       s=s_;
 
-      y=y_; hs=hsub(h);
-      iterations=iterations_;
+      y=y_;
+      // hs=hsub(h); // BUG CHECK
+      hs=h-1; // BUG CHECK
+
+      iterations=iterations_;burnin=burnin_;
       Smode=Smode_;LIKmode=LIKmode_;PRImode=PRImode_;FITmode=FITmode_;
-      verbose=verbose_; test=test_;
+      verbose=verbose_; test=test_; updateratio=updateratio_; bw=bw_;
 
       /////////////
       // Chains //
@@ -662,7 +726,7 @@ class NAP{
       cout<< "Reading external pointer and subsetting genome matrix ... "<<endl;
          X=BMsubset(A,n,m);
       }else if(TYPEOF(A) == REALSXP){
-      cout<< "Matrix provided already subsetted and casted in R"<<endl;
+      cout<< "Matrix provided already subsetted from R"<<endl;
         // NumericMatrix Xr(A);
         // cout << " nrow= " << Xr.nrow() << " ncol= " << Xr.ncol() << endl;
         // arma::mat X(Xr.begin(), Xr.nrow(), Xr.ncol(), false); // this was the original
@@ -695,7 +759,8 @@ class NAP{
       }
      void Sstartgwa(){
         arma::vec news;
-        news=BMmgwa(X,y,false); ///////////// CAREFULL
+        arma::vec ymeans=My(y,hs);
+        news=BMridge(X,ymeans,1); ///////////// BUG CAREFULL GWA
         for(int j;j<news.n_elem;j++){
           if(news(j)< -1) news(j) = -0.99;
         }
@@ -722,6 +787,7 @@ class NAP{
         minhere=s(randomIndex)-bw;
         maxhere=s(randomIndex)+bw;
         newval = runif_reflect(minhere,maxhere,smin,smax);
+        if(newval< -1) newval=-0.999;
         s(randomIndex) = newval;
        if(verbose) cout << "New S:" << newval << endl;
      }
@@ -731,6 +797,7 @@ class NAP{
         meanhere=log(1+s(randomIndex)); //*** transform mean to log dimension
         if(std::isinf(meanhere)) meanhere= 0; // check for infinity
         newval = Rcpp::rnorm(1,meanhere,svar)(0); // sample with the mean being the last value.
+        if(newval< -1) newval=-0.999;
         s(randomIndex) = exp(newval)-1; //*** back transform to natural dimension
        if(verbose) cout << "New S:" << newval << endl;
     }
@@ -747,6 +814,7 @@ class NAP{
       par_chain(6,0)=Rcpp::runif(1,ssmin,ssmax)(0);
     };
     void Gcopy(){par_chain.col(iter)=par_chain.col(iter-1);}
+
     void Gupdate(){
       if(verbose) cout << "updating hyperparameters" <<endl;
       double minhere,maxhere, newval;
@@ -760,30 +828,38 @@ class NAP{
               minhere=par_chain(randomIndex,iter)- (bw *(bmax-bmin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(bmax-bmin));
               newval= runif_reflect(minhere,maxhere,bmin,bmax); break;
+              if(newval<0) newval=0;
             case 1:
               minhere=par_chain(randomIndex,iter)- (bw *(amax-amin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(amax-amin));
               newval= runif_reflect(minhere,maxhere,amin,amax); break;
+              if(newval<0) newval=0;
             case 2:
               minhere=par_chain(randomIndex,iter)- (bw *(pmax-pmin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(pmax-pmin));
               newval= runif_reflect(minhere,maxhere,pmin,pmax); break;
+              if(newval<0) newval=0;
+              if(newval>1) newval=1;
             case 3:
               minhere=par_chain(randomIndex,iter)- (bw *(mumax-mumin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(mumax-mumin));
               newval= runif_reflect(minhere,maxhere,mumin,mumax); break;
+              if(newval<0) newval=0;
             case 4:
               minhere=par_chain(randomIndex,iter)- (bw *(epimax-epimin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(epimax-epimin));
               newval= runif_reflect(minhere,maxhere,epimin,epimax); break;
+              if(newval<0) newval=0;
             case 5:
               minhere=par_chain(randomIndex,iter)- (bw *(svarmax-svarmin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(svarmax-svarmin));
               newval= runif_reflect(minhere,maxhere,svarmin,svarmax); break;
+              if(newval<0) newval=0;
             case 6:
               minhere=par_chain(randomIndex,iter)- (bw *(ssmax-ssmin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(ssmax-ssmin));
               newval= runif_reflect(minhere,maxhere,ssmin,ssmax); break;
+              if(newval<0) newval=0;
         }
         if(verbose) cout << "New hyperpar:" << newval << endl;
         par_chain(randomIndex,iter) = newval;
@@ -794,12 +870,13 @@ class NAP{
   // calculate fitness
   void FITstart(){
     if(verbose) cout << "start computing fitness from scratch" <<endl;
-    arma::vec w(nind,1.0); // w= new arma::vec(X.n_rows)
-    for (int i = 0; i < X.n_cols; i ++) {
-        for(int j=0; j < X.n_rows ; j++){
-          wupdate(w(j),s_chain(i,iter),X(j,i), par_chain(4,iter) ); // epi in position 4
-        }
-    }
+    arma::vec w=wC(X,s_chain.col(0),FITmode,par_chain(4,0),par_chain(3,0)); // matrix, s, mode, epi, mu
+    // arma::vec w(nind,1.0); // w= new arma::vec(X.n_rows)
+    // for(int j=0; j < X.n_rows ; j++){
+    // for (int i = 0; i < X.n_cols; i ++) {
+    //       wupdate(w(j),s_chain(i,iter),X(j,i), par_chain(4,iter) ); // epi in position 4
+    //     }
+    // } // THIS WAS CAUSING A BUG
     w_chain.col(iter)=w;
   }
   void FITcopy(){w_chain.col(iter)=w_chain.col(iter-1);}
@@ -829,57 +906,11 @@ class NAP{
   // calculate probabilities
   void PROBstart(){
     if(verbose) cout << "calculating probability from scratch" <<endl;
-    // switch(LIKmode){
-    //   case 1:
-    //     prob_chain(iter)=0;
-    //     if(verbose) cout << "mock probability" << endl;
-    //     break;
-    //   case 2:
         double newpri, newlik;
         newpri=PRIOR(s_chain.col(iter),
-                                par_chain(5,iter), // svar in position 5
-                                par_chain(6,iter), // ss in position 6
-                                PRImode); //+ ePRIOR(par_chain(4,iter)); // epi in position 4
-        newlik=LIKELIHOOD(y,hs,
-                                     w_chain.col(iter),
-                                     par_chain(0,iter), // b in position 0
-                                     par_chain(1,iter), // a in position 1
-                                     par_chain(2,iter), // p in position 2
-                                     par_chain(3,iter), // mu in position 3
-                                     par_chain(4,iter) // epi in position 3
-                                     );
-        pri_chain(iter)=newpri;
-        lik_chain(iter)=newlik;
-        prob_chain(iter)=newpri + newlik;
-        if(verbose) cout << "Start Prior: " << newpri << endl;
-        if(verbose) cout << "Start Likelihood: " << newlik << endl;
-        if(verbose) cout << "Start Posterior: " << newlik + newpri << endl;
-    //     break;
-    // }
-  }
-  void PROBupdate(){
-    if(verbose) cout << "updating probability" <<endl;
-    // switch(LIKmode){
-    //   case 1:
-    //     prob_chain(iter)=0;
-    //     if(verbose) cout << "mock probability" << endl;
-    //     break;
-    // case 2:
-
-        double newpri, newlik;
-        newpri=uPRIOR(pri_chain(iter-1),
-                                 s_chain.col(iter-1),s_chain.col(iter),
-                                 par_chain(5,iter-1),par_chain(5,iter), // svar in position 5
-                                 par_chain(6,iter-1),par_chain(6,iter), // ss in position 6
-                                 PRImode) ;//+ ePRIOR(par_chain(4,iter)); // epi in position 4 (can be calc. again)
-        // newlik= uLIKELIHOOD(lik_chain(iter-1),
-        //                               y,hs,
-        //                               w_chain.col(iter-1),w_chain.col(iter),
-        //                               par_chain(0,iter-1),par_chain(0,iter), // b in position 0
-        //                               par_chain(1,iter-1),par_chain(1,iter), // a in position 1
-        //                               par_chain(2,iter-1),par_chain(2,iter), // p in position 2
-        //                               par_chain(3,iter-1),par_chain(3,iter) // mu in position 3
-                                      // );
+                      par_chain(5,iter), // svar in position 5
+                      par_chain(6,iter), // ss in position 6
+                      PRImode); //+ ePRIOR(par_chain(4,iter)); // epi in position 4
         newlik=LIKELIHOOD(y,hs,
                                      w_chain.col(iter),
                                      par_chain(0,iter), // b in position 0
@@ -887,17 +918,34 @@ class NAP{
                                      par_chain(2,iter), // p in position 2
                                      par_chain(3,iter), // mu in position 3
                                      par_chain(4,iter), // epi in position 3
-                                     verbose);
-        if(verbose) cout << "BUGGGG" <<  endl;
+                                     verbose,LIKmode);
         pri_chain(iter)=newpri;
-        if(verbose) cout << "BUGGGG1" <<  endl;
         lik_chain(iter)=newlik;
-        if(verbose) cout << "BUGGGG2" <<  endl;
         prob_chain(iter)=newpri + newlik;
-        if(verbose) cout << "BUGGGG3" <<  endl;
-    //     break;
-    // }
+        if(verbose) cout << "Start Prior: " << newpri << endl;
+        if(verbose) cout << "Start Likelihood: " << newlik << endl;
+        if(verbose) cout << "Start Posterior: " << newlik + newpri << endl;
   }
+  void PROBupdate(){
+    if(verbose) cout << "updating probability" <<endl;
+        double newpri, newlik;
+        newpri=uPRIOR(pri_chain(iter-1),
+                       s_chain.col(iter-1),s_chain.col(iter),
+                       par_chain(5,iter-1),par_chain(5,iter), // svar in position 5
+                       par_chain(6,iter-1),par_chain(6,iter), // ss in position 6
+                       PRImode) ;//+ ePRIOR(par_chain(4,iter)); // epi in position 4
+        newlik=LIKELIHOOD(y,hs,
+                                     w_chain.col(iter),
+                                     par_chain(0,iter), // b in position 0
+                                     par_chain(1,iter), // a in position 1
+                                     par_chain(2,iter), // p in position 2
+                                     par_chain(3,iter), // mu in position 3
+                                     par_chain(4,iter), // epi in position 3
+                                     verbose,LIKmode);
+        pri_chain(iter)=newpri;
+        lik_chain(iter)=newlik;
+        prob_chain(iter)=newpri + newlik;
+}
 
   ////////////////////
   void additerations() {iter ++;}
@@ -920,10 +968,19 @@ class NAP{
   }
     ////////////////////
   List report(){
+    arma::vec shat=modeCmat(s_chain);
+    arma::vec par=modeCmat(par_chain);
+    arma::vec what=wC(X,shat,FITmode,par(4),par(3)); // matrix, s, mode, epi, mu
     return List::create(Named("chain") = s_chain.t(),
-                         Named("parchain") = par_chain.t(),
-                         Named("posterior") = prob_chain,
-                         Named("accept") = ok_chain);
+                        Named("shat")=shat,
+                        Named("parchain") = par_chain.t(),
+                        Named("par")=par,
+                        Named("w")=what,
+                        Named("posterior") = prob_chain,
+                        Named("prior") = pri_chain,
+                        Named("likelihood") = lik_chain,
+                        Named("accept") = ok_chain,
+                        Named("FITmode") = FITmode);
   }
 
   ////////////////////
@@ -931,25 +988,14 @@ class NAP{
   ////////////////////
     void RUNTEST(bool verbose=true){
       int iter=0;
-      Sstart();
-      Gstart();
+      // Sstart();
+      // Gstart(); // BUG CHECK!
       FITstart();
       PROBstart();
-      if(verbose) cout << "PRI fun: " << PRIOR(s_chain.col(iter),
-                                          par_chain(5,iter), // svar in position 5
-                                          par_chain(6,iter), // ss in position 6
-                                          PRImode) << endl;
-      if(verbose) cout << "LIK fun: " << LIKELIHOOD(y,hs,
-                                         w_chain.col(iter),
-                                         par_chain(0,iter), // b in position 0
-                                         par_chain(1,iter), // a in position 1
-                                         par_chain(2,iter), // p in position 2
-                                         par_chain(3,iter), // mu in position 3
-                                         par_chain(4,iter), // mu in position 3
-                                         verbose) << endl;
 
-      if(verbose) cout << "w_1: " << w_chain(1,0) << endl;
-      if(verbose) cout << "s_1: " << s_chain(1,0) << endl;
+
+      if(verbose) cout << "w: " << w_chain.col(0) << endl;
+      if(verbose) cout << "s: " << s_chain.col(0) << endl;
       if(verbose) cout << "b: " << par_chain(0,0) << endl;
       if(verbose) cout << "a: " << par_chain(1,0) << endl;
       if(verbose) cout << "p: " << par_chain(2,0) << endl;
@@ -982,17 +1028,21 @@ class NAP{
 
     /// Start NAP & handle -INF probability
     ///////////////////////////////////////////////////////////////////////////
-    Sstart();
-    Gstart();
+    // Sstart();
+    // Sstartgwa(); // initialize s based on gwa
+    // Gstart(); // BUG careful
     FITstart();
     PROBstart();
-    int attemptcounter=1;
+    int attemptcounter=0;
+    int maxattempts=1000;
     while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0)) ||attemptcounter==0){
-      if(verbose && attemptcounter>0) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
       if(verbose && attemptcounter==0) cout << "Running proposals and first probability" << endl;
-      // Sstartgwa(); //initialize s based on gwa
-      Sstart();
-      Gstart();
+      if(attemptcounter==maxattempts) stop("Attempted initializing 1000 times!!! ... tune starting parameters!");
+      if(attemptcounter==1) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
+
+      // Sstart();
+    // Sstartgwa(); // initialize s based on gwa
+    // Gstart(); // BUG careful
       FITstart();
       PROBstart();
       attemptcounter++;
@@ -1004,14 +1054,15 @@ class NAP{
     ///////////////////////////////////////////////////////////////////////////
     if(verbose) cout << "----------"<< endl;
     if(verbose) cout << "*** Starting iterations ***" << endl;
-    double updatingratio = (double)s.n_elem/((double)s.n_elem+(double)par_chain.n_rows);
-    if(verbose) cout << "updates of s/hyperp follow the ratio ratio: " <<  updatingratio << endl;
+
+    if(updateratio== -9.0) updateratio = (double)s.n_elem/((double)s.n_elem+(double)par_chain.n_rows);
+    if(verbose) cout << "updates of s/hyperp follow the ratio ratio: " <<  updateratio << endl;
 
     additerations(); // chain starts in 1
-    for(int l=1; l<iterations;l++){
+    for(int l=1; l<iterations+1;l++){
       if(verbose) cout << "Step: " << l << endl;
       // update
-        if(Rcpp::runif(1)(0) < updatingratio ){ // update selection coefficients
+        if(Rcpp::runif(1)(0) < updateratio ){ // update selection coefficients
           Supdate();
           Gcopy();
         }else{ // update hyperparameters
@@ -1067,17 +1118,19 @@ List napMCMC(
             arma::vec & s,
             double b=0.5,double bmin=0,double bmax=1,
             double a=0.1,double amin=0,double amax=1,
-            double p=0.5,
+            double p=0.5, double pmin=0,double pmax=1,
             double mu=1,double mumin=0, double mumax=50,
             double epi=1,double epimin=1, double epimax=1,
             double svar=0.1,double svarmin=0.001, double svarmax=1,
             double ss=0.1,double ssmin=0, double ssmax=1,
             double smin=-0.98039215686274505668, double smax=10,
             int iterations=1e4,
-            int Smode=2,int LIKmode=3, int PRImode=2, int FITmode=3,
+            double burnin=0.1,
+            int Smode=2,int LIKmode=2, int PRImode=1, int FITmode=2,
             bool verbose=false,
             bool test=false,
-
+            double updateratio= -9.0,
+            double bw= 0.001,
             std::string file2sink= "output.log",
             bool sink2file = false){
 
@@ -1085,11 +1138,12 @@ List napMCMC(
   if(sink2file) std::freopen(file2sink.c_str(), "w", stdout);
 
   // start class and analyses
-  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,mu,mumin,mumax,epi,epimin, epimax,
+  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
           svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
-          iterations,
+          iterations,burnin,
           Smode,LIKmode,PRImode, FITmode,
-          verbose, test
+          verbose, test,
+          updateratio, bw
           );
 
   // run
@@ -1108,17 +1162,19 @@ List test_napMCMC(
             arma::vec & s,
             double b=0.5,double bmin=0,double bmax=1,
             double a=0.1,double amin=0,double amax=1,
-            double p=0.5,
+            double p=0.5, double pmin=0,double pmax=1,
             double mu=1,double mumin=0, double mumax=50,
             double epi=1,double epimin=1, double epimax=1,
             double svar=0.1,double svarmin=0.001, double svarmax=1,
             double ss=0.1,double ssmin=0, double ssmax=1,
             double smin=-0.98039215686274505668, double smax=10,
             int iterations=1e4,
-            int Smode=2,int LIKmode=3, int PRImode=2, int FITmode=3,
+            double burnin=0.1,
+            int Smode=2,int LIKmode=2, int PRImode=1, int FITmode=2,
             bool verbose=false,
             bool test=false,
-
+            double updateratio= -9.0,
+            double bw= 0.001,
             std::string file2sink= "output.log",
             bool sink2file = false){
 
@@ -1126,11 +1182,12 @@ List test_napMCMC(
   if(sink2file) std::freopen(file2sink.c_str(), "w", stdout);
 
   // start class and analyses
-  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,mu,mumin,mumax,epi,epimin, epimax,
+  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
           svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
-          iterations,
+          iterations,burnin,
           Smode,LIKmode,PRImode, FITmode,
-          verbose, test
+          verbose, test,
+          updateratio, bw
           );
 
   // run
@@ -1138,4 +1195,3 @@ List test_napMCMC(
 
   return(nap.report());
 }
-
