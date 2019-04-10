@@ -161,9 +161,6 @@ arma::colvec wC(const arma::Mat<double> & X, // careful arma::mat default is dou
                    double epi=1,
                    double mu=1
                    ){
-  /*
-  * Gamma expectation per haplotype - MULTIPLICATIVE MODEL
-  */
 
   // Initialize class and set fitness model
   FITNESS fit(mode);
@@ -344,7 +341,7 @@ Rcpp::NumericMatrix multigenpopsimC(
 // /// Likelihood, Probabilities, Proposals
 // ////////////////////////////////////////////////////////////////////////////////
 // ////////////////////////////////////////////////////////////////////////////////
-//
+
 //
 // [[Rcpp::export]]
 double runif_reflect(double minhere,double maxhere,double min,double max){
@@ -368,200 +365,9 @@ double runif_reflect(double minhere,double maxhere,double min,double max){
 
   return(newval);
 }
-//
-// // // Zero point mass proposal
-// // // [[Rcpp::export]]
-// // double pProposal(double & p, double min=0, double max=1, double bw=0.1){
-// //     if(p<min || p> max){
-// //       cout << "Parameter p needs to be in between minimum and maximum!" << endl;
-// //     }
-// //     double minhere=p-bw;
-// //     double maxhere=p+bw;
-// //     double newval = runif_reflect(minhere,maxhere,min,max);
-// //     return(newval);
-// // }
-// //
-// // // [[Rcpp::export]]
-// // double bProposal(double & b, double min=-0.01, double max=10, double bw=0.1){
-// //     if(b<min || b> max){
-// //       cout <<"Parameter b needs to be in between minimum and maximum"<< endl;
-// //     }
-// //     double minhere=b-bw;
-// //     double maxhere=b+bw;
-// //     double newval = runif_reflect(minhere,maxhere,min,max);
-// //   return(newval);
-// // }
-// //
-// // // [[Rcpp::export]]
-// // double aProposal(double & a, double min=-10, double max=10, double bw=0.1){
-// //     if(a<min || a> max){
-// //       cout <<"Parameter a needs to be in between minimum and maximum"<< endl;
-// //     }
-// //     double minhere=a-bw;
-// //     double maxhere=a+bw;
-// //     double newval = runif_reflect(minhere,maxhere,min,max);
-// //   return(newval);
-// // }
-// //
-// // // [[Rcpp::export]]
-// // double epiProposal(double & a, double min=-0.1, double max=5, double bw=0.1){
-// //     if(a<min || a> max){
-// //       cout <<"Parameter epi needs to be in between minimum and maximum"<< endl;
-// //     }
-// //
-// //     double minhere=a-bw;
-// //     double maxhere=a+bw;
-// //     double newval = runif_reflect(minhere,maxhere,min,max);
-// //   return(newval);
-// // }
-// //
-// // double muProposal(double & a, double min=-0.1, double max=10, double bw=0.1){
-// //     if(a<min || a> max){
-// //       cout <<"Parameter mu needs to be in between minimum and maximum"<< endl;
-// //     }
-// //
-// //     double minhere=a-bw;
-// //     double maxhere=a+bw;
-// //     double newval = runif_reflect(minhere,maxhere,min,max);
-// //   return(newval);
-// // }
-// //
-// //
-// //  // [[Rcpp::export]]
-// // void test_pProposal(double p=0.5){
-// //   cout << pProposal(p) << endl;
-// // }
-// //  // [[Rcpp::export]]
-// // void test_bProposal(double b=0.2){
-// //   cout << bProposal  (b) << endl;
-// // }
-// //  // [[Rcpp::export]]
-// // void test_aProposal(double a=0.1){
-// //   cout << bProposal  (a) << endl;
-// // }
-// //
-// //  // [[Rcpp::export]]
-// // void test_muProposal(double a=0.2){
-// //   cout << muProposal  (a) << endl;
-// // }
-// //  // [[Rcpp::export]]
-// // void test_epiProposal(double a=0.1){
-// //   cout << epiProposal(a) << endl;
-// // }
-//
-// class GPROPOSAL{
-//   private:
-//     double b; double bmin; double bmax;
-//     double a; double amin; double amax;
-//     double p; double pmin=0; double pmax=1;
-//     double mu; double mumin; double mumax;
-//     double epi; double epimin; double epimax;
-//     double svar; double svarmin; double svarmax;
-//     double ss; double ssmin; double ssmax;
-//     int nupdates=1;
-//     bool verbose;
-//     double bw;
-//
-//   public:
-//     GPROPOSAL(
-//             double b_=0.5,double bmin_=0,double bmax_=1,
-//             double a_=0.1,double amin_=0,double amax_=1,
-//             double p_=0.5,
-//             double mu_=1,double mumin_=0, double mumax_=10,
-//             double epi_=1,double epimin_=0, double epimax_=5,
-//             double svar_=0.5,double svarmin_=0, double svarmax_=5,
-//             double ss_=0.1,double ssmin_=0, double ssmax_=1,
-//             double bw_=0.1,
-//             bool verbose_=false
-//             ){
-//       b=b_;bmin=bmin_;bmax=bmax_;
-//       a=a_;amin=amin_;amax=amax_;
-//       p=p_;
-//       mu=mu_;mumin=mumin_;mumax=mumax_;
-//       epi=epi_;epimin=epimin_;epimax=epimax_;
-//       svar=svar_;svarmin=svarmin_;svarmax=svarmax_;
-//       ss=ss_;ssmin=ssmin_;ssmax=ssmax_;
-//       bw=bw_;
-//       verbose=verbose_;
-//     }
-//     void setupdatesnum(int ups){nupdates=ups;}
-//     void setverbose(bool verbose_){verbose=verbose_;}
-//     void printatributes(){
-//       cout <<"bw = " << bw << endl;
-//       cout <<"b = " << b << " " << bmin << " " << bmax << endl;
-//       cout <<"a = " << a << " " << amin << " " << amax << endl;
-//       cout <<"p = " << p << " " << pmin << " " << pmax << endl;
-//       cout <<"mu = " << mu << " " << mumin << " " << mumax << endl;
-//       cout <<"epi = " << epi << " " << epimin << " " << epimax << endl;
-//       cout <<"svar = " << svar << " " << svarmin << " " << svarmin << endl;
-//       cout <<"ss = " << ss << " " << ssmin << " " << ssmin << endl;
-//     }
-//     arma::vec fn(arma::vec g){
-//
-//       // New proposal
-//       arma::vec news=g;
-//
-//       // Update one position
-//       double minhere,maxhere;
-//       double newval;
-//
-//       if(verbose) cout << "Loop to substitute position" << endl;
-//       for(int j=0; j< nupdates; j++){
-//         int randomIndex = rand() % g.size();
-//         minhere=g(randomIndex)-bw;
-//         maxhere=g(randomIndex)+bw;
-//         switch(randomIndex){
-//             if(verbose) cout << g(randomIndex) << endl;
-//             case 0: newval= runif_reflect(minhere,maxhere,bmin,bmax); break;
-//             case 1: newval= runif_reflect(minhere,maxhere,amin,amax); break;
-//             case 2: newval= runif_reflect(minhere,maxhere,pmin,pmax); break;
-//             case 3: newval= runif_reflect(minhere,maxhere,mumin,mumax); break;
-//             case 4: newval= runif_reflect(minhere,maxhere,epimin,epimax); break;
-//             case 5: newval= runif_reflect(minhere,maxhere,svarmin,svarmax); break;
-//             case 6: newval= runif_reflect(minhere,maxhere,ssmin,ssmax); break;
-//         }
-//         if(verbose) cout << newval << endl;
-//         news(randomIndex) = newval;
-//       }
-//       if(verbose) cout << "End loop" << endl;
-//
-//       return(news);
-//   }
-// };
-//
-//
-//
-// // [[Rcpp::export]]
-// void test_GProposal(double b=1,double a=1,
-//                     double p=1, double mu=1,
-//                     double epi=1, double svar=1,double ss=0.1,
-//                     int iter=3,bool verbose = true){
-//
-//   arma::vec g(6);
-//   g(0)= b;
-//   g(1)= a;
-//   g(2)= p;
-//   g(3)= mu;
-//   g(4)= epi;
-//   g(5)= svar;
-//   g(6)= ss;
-//
-//   GPROPOSAL GProp; // mode 1 = uniform ; mode 2 = LD
-//   GProp.setverbose(verbose);
-//   GProp.printatributes();
-//   cout << "Original " << endl;
-//   cout << g << endl;
-//   cout << "Testing proposals "<< endl;
-//   for(int i=0; i<iter; i++){
-//     g=GProp.fn(g);
-//     cout <<  g<< endl;
-//   }
-//
-// }
-//           //   gproposal=GProp.fn(par_chain.col(i));
-//
+
 // ///////////////////////////////////////////////////////////////////////////////
-// Selection proposal with LD
+
 class PROPOSAL {
   private:
     double bw;

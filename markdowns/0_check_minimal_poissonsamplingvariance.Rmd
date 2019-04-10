@@ -1,0 +1,124 @@
+---
+title: "mcmccheck"
+author: "Moi Exposito-Alonso"
+date: '`r Sys.Date()`'
+# output: html_document
+output:
+  #- \setlength{\parindent}{4em}
+  #- \setlength{\parskip}{0em}
+  
+  pdf_document:
+  header-inclusdes:
+   - \usepackage{amsmath}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{graphicx}
+  #html_document: default
+  #header-includes:
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+ setwd("~/GoogleDrive/RESEARCH/_nap/nap")
+
+knitr::opts_chunk$set(echo = TRUE)
+## Load packages
+library(devtools)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+
+library(coda)
+library(Rcpp)
+library(MCMCglmm)
+
+library(moiR)
+load_all('.')
+# library(nap)
+
+```
+
+
+<!-- Test inintialization -->
+<!-- ```{r} -->
+<!-- x<-test_napMCMC(y,h,X,m=1:m,n=1:n,rnorm(m,0,0.1), -->
+<!--            test=F, -->
+<!--            verbose=T, -->
+<!--            iterations=10,FITmode = 2,Smode = 2, -->
+<!--            PRImode = 2) -->
+
+<!-- ``` -->
+
+<!-- Test few steps -->
+<!-- ```{r} -->
+
+<!-- x<-napMCMC(y,h,X,m=1:m,n=1:n,rnorm(m,0,0.1), -->
+<!--            test=F, -->
+<!--            verbose=T, -->
+<!--            iterations=100,FITmode = 2,Smode = 2, -->
+<!--            PRImode = 2) -->
+
+<!-- plotNAP(x) -->
+<!-- ``` -->
+```{r}
+
+
+p=0
+mu=1
+svar=0.1
+ss=0
+epi=1
+replicates=5
+ss=0
+n=500
+m=3
+maf=mafsim(m)
+X <- Xsim(n,m,maf)
+s= ssim(m,svar)
+Ey=wsim(X,s,mode=2)
+h=sort(rep.int(1:n,replicates))
+
+a=0.001
+b=1
+y=sampleW(Ey,a,b,p,rep = replicates)
+
+
+title <- ggdraw() + draw_label(paste("h2= ",format(var(Ey) / var(y),digits=2)),fontface = 'bold')
+plot_grid(title,
+          plot_grid(qplot(Ey),qplot(y)),
+          ncol = 1, rel_heights = c(0.1, 1)
+         )
+
+```
+
+
+# Simple run with poisson sampling variance (increasing with the mean)
+```{r , echo=FALSE, fig.width=8,fig.height=8,fig.align='center'}
+
+
+x<-napMCMCwrap()
+
+
+pnap<-scorplot(s,x$shat)
+pgwa<-scorplot(s,BMridge(X,My(y,h)))
+pfinal<-plot_grid(
+          pnap$psel,
+          pgwa$psel,
+          labels=c("NAP","mGWA")
+          )
+# print(pfinal)
+
+inap<-indplot(y,h,x$w)
+igwa<-indplot(y,h,X %*% BMridge(X,My(y,h))+mu)
+pfin2<-plot_grid(
+          inap,
+          igwa,
+          labels=c("NAP","mGWA")
+          )
+# print(pfin2)
+
+plot_grid(pfinal,pfin2,ncol=1)
+
+```

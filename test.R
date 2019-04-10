@@ -1,0 +1,5 @@
+library(Rcpp)
+# sourceCpp("MCMCnapdev.cpp")
+library(devtools)
+load_all(".")
+test_UPDATES()

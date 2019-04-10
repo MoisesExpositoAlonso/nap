@@ -3,6 +3,8 @@
 rm R/RcppExports.R
 
 cd src
-bash cleancompile.sh
+rm *.o
+rm *.so
+rm RcppExports.cpp
 
 

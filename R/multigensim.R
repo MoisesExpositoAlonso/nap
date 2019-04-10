@@ -12,26 +12,66 @@ mafsim<-function(p, type='uniform',rate=1, cutoff=1){
   }
 }
 
+# Xsim<-function(n=100,p=1000, maf){
+#   X<-cbind(sapply(1:p,function(i) sample(c(-1,+1),size=n,replace=T,prob = c(1-maf[i],maf[i] ) )))
+# return(X)
+# }
 Xsim<-function(n=100,p=1000, maf){
-  # X<-cbind(sapply(1:p,function(i) rbinom(n = n,size=1,prob = maf[i])))
-  X<-cbind(sapply(1:p,function(i) sample(c(-1,+1),size=n,replace=T,prob = c(1-maf[i],maf[i] ) )))
+  X<-cbind(sapply(1:p,function(i) sample(c(0,1),size=n,replace=T,prob = c(1-maf[i],maf[i] ) )))
 return(X)
 }
 
-
-ssim<-function(p,svar=0.1){
-  PropoS(1000,svar)
+XsimLD<-function(n=100,p=1000, maf,r2=0.4){
+  require(MASS)
+  R<-diag(p)
+  R[R==1]<-1
+  R[R==0]<-r2
+  X_<- ((mvrnorm(n = n,Sigma = R,mu=maf,empirical = T)) )
+  X_<- lapply(1:p,function(i) {X_[,i]>maf[i]} ) %>% do.call(what = cbind,.)
+  # X_<- ((mvrnorm(n = n,Sigma = R,mu=rep(0.5,p),empirical = T)) > 0.5)*1
+  # X_<- lapply(1:p,function(i) {X_[,i]>0.5} ) %>% do.call(what = cbind,.)
+  X_=X_*1
+  cor(X_)
+return(X_)
 }
+
+
+#
+# Specify the parameters.
+#
+
+
+PropoS<-function(n, m=1,svar=0.1){
+  s = exp( rnorm(n,0,svar) ) - 1
+ return(s)
+}
+
+ssim<-function(nsnp,svar=0.1){
+  exp( rnorm(nsnp,0,svar) ) - 1
+}
+
 
 wsim<-function(X,s,mode=1, epi=1,mu=1){
   wC(X,s,mode,epi,mu)
 }
 
 
-sampleEys<-function(Eys,a,b,p,rep=1){
+sampleW<-function(Eys,a,b,p,rep=1){
   Yobs<-c()
   for(i in 1:length(Eys)){
     Yobs<-c(Yobs,rnorm(rep,Eys[i], abs(a+(Eys[i]*b)) ))
+  }
+  Yobs[Yobs<0] <-0
+  if(p!=0){
+    Yobs[sample(1:length(Yobs),size = ceiling(p*length(Yobs)) ) ]<-0
+  }
+return(Yobs)
+}
+
+sampleW2<-function(Eys,a,b,p,rep=1){
+  Yobs<-c()
+  for(i in 1:length(Eys)){
+    Yobs<-c(Yobs, Eys[i]+rnorm(rep,0, abs(a+(Eys[i]*b)) ))
   }
   Yobs[Yobs<0] <-0
   if(p!=0){

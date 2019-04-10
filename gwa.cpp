@@ -29,6 +29,16 @@ using namespace arma;
 
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Declaring other functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+arma::Mat<double> BMsubset(SEXP, const arma::uvec, const arma::uvec );
+
+
+////////////////////////////////////////////////////////////////////////////////
+/// GWA functions
+////////////////////////////////////////////////////////////////////////////////
 
 // // [[Rcpp::export]]
 // arma::vec gwa(arma::mat X, arma::vec Y,M=ncol(X),N=nrow(X)){
@@ -72,21 +82,6 @@ arma::Mat<double> BMread(SEXP A){
 }
 
 // [[Rcpp::export]]
-arma::Mat<double> BMsubset(SEXP A, const arma::uvec & myrows, const arma::uvec & mycols ){
-      Rcpp::XPtr<BigMatrix> bigMat(A);
-      arma::Mat<double> X0((double*) bigMat->matrix(), bigMat->nrow(), bigMat->ncol(), false, false);
-                                      // consider saying true, perhaps is faster
-      // Subset matrix
-    	if(myrows.n_elem == X0.n_rows){
-    		X0=X0.cols(mycols);
-    	}else if(mycols.n_elem == X0.n_rows){
-    	  X0=X0.rows(myrows);
-    	}else{
-    		X0=X0.submat(myrows,mycols);
-    	}
-      return(X0);
-}
-// [[Rcpp::export]]
 arma::Mat<double> BMcolsubset(SEXP A, const arma::uvec & mycols ){
       Rcpp::XPtr<BigMatrix> bigMat(A);
       arma::Mat<double> X0((double*) bigMat->matrix(), bigMat->nrow(), bigMat->ncol(), false, false);
@@ -96,10 +91,10 @@ arma::Mat<double> BMcolsubset(SEXP A, const arma::uvec & mycols ){
 }
 
 // [[Rcpp::export]]
-NumericVector BMprod(XPtr<BigMatrix> bMPtr, const NumericVector& x,
+NumericVector BMprod(SEXP A, const NumericVector& x,
                      const arma::uvec & myrows,const arma::uvec & mycols ) {
-
-  MatrixAccessor<double> macc(*bMPtr);
+  Rcpp::XPtr<BigMatrix> bigMat(A);
+  MatrixAccessor<double> macc(*bigMat);
 
   NumericVector res(myrows.n_elem);
   int i, j;
@@ -111,22 +106,15 @@ NumericVector BMprod(XPtr<BigMatrix> bMPtr, const NumericVector& x,
   return res;
 }
 
+
 // [[Rcpp::export]]
-NumericVector BMpred(XPtr<BigMatrix> bMPtr, const NumericVector& x,
+NumericVector BMpred(SEXP A, const NumericVector& x,
                      const arma::uvec & myrows,const arma::uvec & mycols,
                      double intercept){
-  return(BMprod(bMPtr, x,myrows,mycols) + intercept);
+  return(BMprod(A, x,myrows,mycols) + intercept);
 }
 
 
-// [[Rcpp::export]]
-mat Xmcenter(mat X){
-  mat newX(X.n_rows,X.n_cols);
-  for(int j=0; j<X.n_cols; j++){
-   newX.col(j) = (X.col(j) - arma::mean( X.col(j))) ;
-  }
-  return(newX);
-}
 
 // [[Rcpp::export]]
 arma::colvec My(const arma::colvec & y, const arma::colvec & h){
@@ -248,9 +236,37 @@ arma::colvec BMmgwa(const SEXP A,
  return(coef);
 }
 
+arma::colvec BMmgwa(const SEXP A,
+                    const arma::colvec & y,
+                    bool debug=false) {
+	// Read pointer
+	Rcpp::XPtr<BigMatrix> bigMat(A);
+
+	// Map to matrix
+    arma::Mat<double> X0((double*) bigMat->matrix(), bigMat -> nrow(), bigMat -> ncol(), false);
+	// X0=X0.cols(vars);
+
+	// Centering
+    arma::mat X=Xmcenter(X0);
+
+
+	// Ordineary Least Squares
+  	arma::colvec coef(X.n_cols);
+	arma::colvec val;
+
+	// cout << "calculate effects" << endl;
+	for(int i=0; i< X.n_cols; i++){
+		arma::mat Xsub= X.col(i);
+		arma::vec val = solve(Xsub,arma::mat(y));
+		if(debug) cout << val << endl;
+		coef(i) = val(0);
+	}
+ return(coef);
+}
+
 // [[Rcpp::export]]
-vec softmax_cpp(vec x, vec y) { // for utils in BMlasso
-  return sign(x) % max(abs(x) - y, zeros(x.n_elem));
+arma::vec softmax_cpp(arma::vec x, arma::vec y) { // for utils in BMlasso
+  return sign(x) % max(abs(x) - y, arma::zeros(x.n_elem));
 }
 
 // [[Rcpp::export]]
@@ -273,17 +289,17 @@ arma::vec BMlasso(const SEXP A,const arma::colvec & y, const arma::uvec & vars,
 
 	// Precompute some values
 	int p = X.n_cols;
-	mat XX = X.t() * X;
-	vec Xy = X.t() * y;
-	vec Xy2 = 2 * Xy;
-	mat XX2 = 2 * XX;
+	arma::mat XX = X.t() * X;
+	arma::vec Xy = X.t() * y;
+	arma::vec Xy2 = 2 * Xy;
+	arma::mat XX2 = 2 * XX;
 
 	// Solver
-	vec beta = solve(XX + diagmat(lambda * ones(p)), Xy);
+	arma::vec beta = solve(XX + diagmat(lambda * ones(p)), Xy);
 
 	bool converged = false;
 	int iteration = 0;
-	vec beta_prev, aj, cj;
+	arma::vec beta_prev, aj, cj;
 
 	while (!converged && (iteration < max_iter)){
 		beta_prev = beta;
@@ -338,7 +354,7 @@ arma::vec BMsimridge(const SEXP A,const arma::colvec & y, const arma::uvec & var
 
 // [[Rcpp::export]]
 List BMridge(const SEXP A,const arma::colvec & y, const arma::uvec & vars,
-             const colvec & lambda) {
+             const arma::colvec & lambda) {
 	/*
 	* Ridge regression
 	*
@@ -360,7 +376,7 @@ List BMridge(const SEXP A,const arma::colvec & y, const arma::uvec & vars,
 	int p = X.n_cols;
 
 	mat coef(p, n_lam, fill::zeros);
-	colvec y_tilde = join_cols(y, zeros<colvec>(p));
+	colvec y_tilde = join_cols(y, arma::zeros<colvec>(p));
 
 
 	for(int i = 0; i < n_lam; i++){

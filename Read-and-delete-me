@@ -6,3 +6,11 @@
 * Run R CMD check to check the package tarball.
 
 Read "Writing R Extensions" for more information.
+
+
+only one .cpp file can be used to export functions to R (as long as I know). Also, subfolders within src are more difficult to set up which involves modifying Makevars.
+https://stackoverflow.com/questions/45083974/rcpp-package-creation-symbol-not-found-error
+
+
+One can have multiple .hpp and .cpp and use a main .cpp that loads those headers to do the final functions
+example: https://knausb.github.io/2017/08/header-files-in-rcpp/

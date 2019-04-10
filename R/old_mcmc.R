@@ -1,11 +1,11 @@
 #### UTILITIES  ####
 
-# sampleW<-function(Eys,a,b,p,rep=5){
-#   Yobs<-c( sapply(1:nrow(Go), function(i) rnorm(rep,Eys[i],a+(Eys[i]*b))))
-#   Yobs[Yobs<0] <-0
-#   if(p!=0) Yobs[sample(1:length(Yobs),size = ceiling(p*length(Yobs)) ) ]<-0
-# return(Yobs)
-# }
+sampleEys<-function(Eys,a,b,p,rep=5){
+  Yobs<-c( sapply(1:nrow(Go), function(i) rnorm(rep,Eys[i],a+(Eys[i]*b))))
+  Yobs[Yobs<0] <-0
+  if(p!=0) Yobs[sample(1:length(Yobs),size = ceiling(p*length(Yobs)) ) ]<-0
+return(Yobs)
+}
 
 ####************************************************************************####
 
@@ -544,9 +544,9 @@ simulate_data<-function(Go,
 
   ## Sample 5 repliates from those expectations
 
-  Y1<-sampleW(Eys = fn(Ey1),a = a,b = b,p = p,rep=5)
-  Y2<-sampleW(Eys = fn(Ey2),a = a,b = b,p = p,rep=5)
-  Y3<-sampleW(Eys = fn(Ey3),a = a,b = b,p = p,rep=5)
+  Y1<-sampleEys(Eys = fn(Ey1),a = a,b = b,p = p,rep=5)
+  Y2<-sampleEys(Eys = fn(Ey2),a = a,b = b,p = p,rep=5)
+  Y3<-sampleEys(Eys = fn(Ey3),a = a,b = b,p = p,rep=5)
 
 
   # The ids of genotypes

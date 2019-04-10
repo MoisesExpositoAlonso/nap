@@ -54,6 +54,23 @@ using namespace arma;
 /// Utilities with matrices
 ////////////////////////////////////////////////////////////////////////////////
 
+
+// [[Rcpp::export]]
+bool BMsimulate(SEXP A){
+      Rcpp::XPtr<BigMatrix> bigMat(A);
+      MatrixAccessor<int> macc(*bigMat);
+
+      NumericVector maf = Rcpp::runif( bigMat->ncol(), 0,0.49);
+
+      int i, j;
+      for (j = 0; j <bigMat->ncol(); j++) {
+        for (i = 0; i < bigMat->nrow(); i++) {
+          if(Rcpp::runif(1)(0) < maf(j)) macc[j][i] = 2;
+        }
+      }
+      return Rcpp::wrap(true);
+}
+
 // [[Rcpp::export]]
 arma::Mat<double> BMsubset(SEXP A, const arma::uvec & myrows, const arma::uvec & mycols ){
       Rcpp::XPtr<BigMatrix> bigMat(A);
@@ -486,8 +503,8 @@ double LIKELIHOOD(const arma::vec & y,
       for(int i=0; i< y.n_elem ; i ++){ // check for infinity
         LL= LLGaussMix(y(i)/mu,w_(hs(i)),w_(hs(i))*b+a,p);
 
-        // if(verbose and std::isinf(LL)){
-        if(std::isinf(LL)){
+        if(verbose and std::isinf(LL)){
+        // if(std::isinf(LL)){
           cout << "---" << endl;
           cout << i << endl;
           cout << y(i) << " "<< w_(hs(i)) << " "<< w_(hs(i))*b+a <<" "<< p << endl;
@@ -608,7 +625,31 @@ arma::vec wC(
     }
   return(pow(w,epi)*mu);
 }
-////////////////////////////////////////////////////////////////////////////////
+
+// [[Rcpp::export]]
+NumericVector wCBM(SEXP A,
+                   const NumericVector& s,
+                   const arma::uvec & myrows,
+                   const arma::uvec & mycols,
+                   const int & mode,
+                   double epi=1,
+                   double mu=1,
+                   bool verbose=false){
+
+  Rcpp::XPtr<BigMatrix> bigMat(A);
+  MatrixAccessor<double> macc(*bigMat);
+
+  NumericVector res(myrows.n_elem);
+  int i, j;
+  for (j = 0; j <mycols.n_elem; j++) {
+    for (i = 0; i < myrows.n_elem; i++) {
+      res[i] += macc[mycols(j)][myrows(i)] * s[j];
+    }
+  }
+  return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 /// MCMC
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -734,6 +775,8 @@ class NAP{
          // arma::mat X=A; // no viable converstion
         NumericMatrix Xr(A);
         X = as<arma::mat>( Xr ) ;
+        X=Xmvcenter(X); // CHECK FOR BUGS!
+
       }
     };
 
@@ -957,7 +1000,9 @@ class NAP{
     if(verbose) cout<< "Accept proposal " << accept <<endl;
     if(accept){
       ok_chain(iter)=1;
+      // bw=0.001; // BUG CHECK -- interesting application, if accepted you want to climb slowly
     }else{
+      bw+=0.001; // BUG CHECK -- interesting application, although it is incompatible with the MH algorithm
       ok_chain(iter)=0;
       s_chain.col(iter) = s_chain.col(iter-1);
       par_chain.col(iter) = par_chain.col(iter-1);
@@ -979,6 +1024,15 @@ class NAP{
                         Named("posterior") = prob_chain,
                         Named("prior") = pri_chain,
                         Named("likelihood") = lik_chain,
+                        Named("final_likelihood") =
+                          LIKELIHOOD(y,hs,
+                                     what,
+                                     par(0), // b in position 0
+                                     par(1), // a in position 1
+                                     par(2), // p in position 2
+                                     par(3), // mu in position 3
+                                     par(4), // epi in position 3
+                                     verbose,LIKmode),
                         Named("accept") = ok_chain,
                         Named("FITmode") = FITmode);
   }
@@ -986,13 +1040,12 @@ class NAP{
   ////////////////////
   // MAIN
   ////////////////////
-    void RUNTEST(bool verbose=true){
+    void RUNTEST(bool verbose=false){
       int iter=0;
       // Sstart();
       // Gstart(); // BUG CHECK!
       FITstart();
       PROBstart();
-
 
       if(verbose) cout << "w: " << w_chain.col(0) << endl;
       if(verbose) cout << "s: " << s_chain.col(0) << endl;
@@ -1028,26 +1081,22 @@ class NAP{
 
     /// Start NAP & handle -INF probability
     ///////////////////////////////////////////////////////////////////////////
-    // Sstart();
-    // Sstartgwa(); // initialize s based on gwa
-    // Gstart(); // BUG careful
     FITstart();
     PROBstart();
-    int attemptcounter=0;
-    int maxattempts=1000;
-    while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0)) ||attemptcounter==0){
-      if(verbose && attemptcounter==0) cout << "Running proposals and first probability" << endl;
-      if(attemptcounter==maxattempts) stop("Attempted initializing 1000 times!!! ... tune starting parameters!");
-      if(attemptcounter==1) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
-
-      // Sstart();
-    // Sstartgwa(); // initialize s based on gwa
-    // Gstart(); // BUG careful
-      FITstart();
-      PROBstart();
-      attemptcounter++;
-    }
-    if(verbose) cout << "Successful MCMC start after " << attemptcounter << " attempts " << endl<< endl;
+    // int attemptcounter=0;
+    // int maxattempts=1000;
+    // while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
+    //   if(verbose && attemptcounter==0) cout << "Running proposals and first probability" << endl;
+    //   if(attemptcounter==maxattempts) stop("Attempted initializing 1000 times!!! ... tune starting parameters!");
+    //   if(attemptcounter==1) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
+    //   Sstart();
+   //   // Sstartgwa();
+    //   Gstart(); // BUG careful
+    //   FITstart();
+    //   PROBstart();
+    //   attemptcounter++;
+    // }
+    // if(verbose) cout << "Successful MCMC start after " << attemptcounter << " attempts " << endl<< endl;
 
 
     /// Run MCMC
@@ -1191,7 +1240,7 @@ List test_napMCMC(
           );
 
   // run
-  nap.RUNTEST();
+  nap.RUNTEST(verbose);
 
   return(nap.report());
 }

@@ -10,7 +10,7 @@ myserver<-function(input, output) {
 
 p <- reactive({
   # popgensim::allelesim(
-  popgensim::allelesimCmat( # this is the C implementation
+  allelesimCmat( # this is the C implementation
     mu=as.numeric(input$mu),
                              nu=as.numeric(input$nu),
                              m=as.numeric(input$m),

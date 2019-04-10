@@ -206,3 +206,12 @@ glm(data=filter(toplot,type==0,Dlower<4.6e5),formula='Ylower ~ 0+ I(Dlower)') %>
 # myplot
 # save_plot(myplot,filename = 'figs/kondrasov_nmut_fitness.pdf',base_height = 6,base_width = 6)
 # saveRDS(file='figsfiles/kondrasov.rda',myplot)
+# Kondrasove
+pk<-readRDS('figsfiles/kondrasov.rda')
+
+# GWA
+pgwa<-readRDS('figsfiles/gwa.rda')
+
+pgwa
+dev.off()
+save_plot(plot=plot_grid(myplot,pgwa[[1]],pgwa[[2]],pgwa[[3]],ncol=2), filename = 'figs/kondrasov_gwa_fitness_oriented.pdf',base_height = 8,base_width = 8)

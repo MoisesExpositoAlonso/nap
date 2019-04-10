@@ -1,0 +1,191 @@
+---
+title: "mcmccheck"
+author: "Moi Exposito-Alonso"
+date: '`r Sys.Date()`'
+# output: html_document
+output:
+  #- \setlength{\parindent}{4em}
+  #- \setlength{\parskip}{0em}
+  
+  pdf_document:
+  header-inclusdes:
+   - \usepackage{amsmath}
+   - \usepackage{caption}
+   - \usepackage{subcaption}
+   - \usepackage{graphicx}
+  #html_document: default
+  #header-includes:
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+ setwd("~/GoogleDrive/RESEARCH/_nap/nap")
+
+knitr::opts_chunk$set(echo = TRUE)
+## Load packages
+library(devtools)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
+
+library(coda)
+library(Rcpp)
+library(MCMCglmm)
+
+library(moiR)
+load_all('.')
+# library(nap)
+
+```
+
+
+```{r}
+
+genomes<-readRDS('../gws/databig/genome.rda')
+# G <- attachgenomes(genomes)
+
+Go<-bigmemory::attach.big.matrix('../gws/databig/gc.desc')
+
+
+
+###************************************************************************####
+### Single Run for profiling ####
+
+set.seed(1)
+
+## Preparate all parameters
+p=0.1
+b=0.1
+a=0
+ss=0.1
+svar=0.1
+m=10
+epistasis=1
+prophidden=0
+training=0.9
+training=1
+
+sdat<-simulate_data(Go=Go,p=p,b=b,a=a,
+										m=m,
+										prophidden = prophidden,
+										ss=ss,
+										trainingp = training,
+										svar = svar
+										)
+
+sdat$s
+```
+
+
+
+# Simple run without sampling variance
+Hyperparameters are fixed
+
+```{r , echo=T}
+
+a=0.1
+b=0
+p=0
+mu=1
+svar=0.1
+ss=0
+epi=1
+replicates=5
+ss=0
+n=50
+m=10
+FITmode=2
+
+maf=mafsim(m)
+X=A <- Xsim(n,m,maf)
+s= ssim(m,svar)
+Ey=wsim(X,s,mode=FITmode,epi = epi,mu = mu)
+y=sampleW(Ey,a,b,p,rep = replicates)
+h=sort(rep.int(1:n,replicates))
+title <- ggdraw() + draw_label(paste("h2= ",format(var(Ey) / var(y),digits=2)),fontface = 'bold')
+plot_grid(title,
+          plot_grid(qplot(Ey),qplot(y)),
+          ncol = 1, rel_heights = c(0.1, 1)
+         )
+x<-napMCMCwrap()
+
+LIKELIHOOD(y,h-1,wC(X,BMridge(X,My(y,h)),FITmode),b,a,p,mu,epi,verbose = F)
+LIKELIHOOD(y,h-1,wC(X,x$shat,FITmode),b,a,p,mu,epi,verbose = F)
+LIKELIHOOD(y,h-1,wC(X,s,FITmode),b,a,p,mu,epi,verbose = F)
+
+
+# x<-napMCMC(y,h,X,m=1:m,n=1:n,
+#            rnorm(m,0,0.1),
+#            # BMridge(X,My(y,h), lambda=10),
+#            # s+rnorm(m,0,0.01),
+#            test=F,
+#            verbose=F,
+#            iterations=5000 * m,
+#            FITmode = FITmode,PRImode = 1,LIKmode = 2,
+#            bw=0.001)
+# 
+# LIKELIHOOD(y,h-1,wC(X,BMridge(X,My(y,h)),FITmode),b,a,p,mu,epi,verbose = F)
+# LIKELIHOOD(y,h-1,wC(X,x$shat,FITmode),b,a,p,mu,epi,verbose = F)
+# LIKELIHOOD(y,h-1,wC(X,s,FITmode),b,a,p,mu,epi,verbose = F)
+# 
+# 
+# x<-napMCMC(y,h,X,m=1:m,n=1:n,
+#            x$shat,
+#            test=F,
+#            verbose=F,
+#            iterations=5000 * m,
+#            FITmode = FITmode,PRImode = 1,LIKmode = 2,
+#            bw=0.05)
+# 
+# LIKELIHOOD(y,h-1,wC(X,BMridge(X,My(y,h)),FITmode),b,a,p,mu,epi,verbose = F)
+# LIKELIHOOD(y,h-1,wC(X,x$shat,FITmode),b,a,p,mu,epi,verbose = F)
+# LIKELIHOOD(y,h-1,wC(X,s,FITmode),b,a,p,mu,epi,verbose = F)
+
+```
+
+
+
+```{r, fig.width=8,fig.height=8,fig.align='center'}
+
+# qplot(x$shat,BMridge(X,My(y,h)), xlab = "NAP",ylab="rGWA") + 
+      # geom_abline(slope = 1,intercept = 0, color=transparent("grey"))
+
+pnap<-scorplot(s,x$shat)
+pgwa<-scorplot(s,BMridge(X,My(y,h)))
+pfinal<-plot_grid(
+          pnap$psel,
+          pgwa$psel,
+          labels=c("NAP","mGWA")
+          )
+# pfinal
+
+inap<-indplot(y,h,wC(X,x$shat,FITmode,epi = x$par["epi",] ,mu= x$par["mu",]))
+igwa<-indplot(y,h,X %*% BMridge(X,My(y,h))+mu)
+trueplot<-indplot(y,h,wC(X,s,FITmode,epi = epi ,mu= mu))
+pfin2<-plot_grid(
+          inap,
+          igwa,
+          labels=c("NAP","mGWA")
+          )
+# pfin2
+
+plo<-plot_grid(pfinal,pfin2,ncol=1)
+print(plo)
+
+```
+
+
+#What it should be
+```{r, fig.width=8,fig.height=12,fig.align='center'}
+inap<-indplot(y,h,wC(X,x$shat,FITmode,epi = x$par["epi",] ,mu= x$par["mu",]))
+inapfalse<-indplot(y,h,wC(X,x$shat,1,epi = x$par["epi",] ,mu= x$par["mu",]))
+igwa<-indplot(y,h,X %*% BMridge(X,My(y,h))+mu)
+trueplot<-indplot(y,h,wC(X,s,FITmode,epi = epi ,mu= mu))
+
+
+plot_grid(inap,igwa,trueplot,ncol=1,labels=c("NAP","mGWA","Truth"))
+
+```
+
