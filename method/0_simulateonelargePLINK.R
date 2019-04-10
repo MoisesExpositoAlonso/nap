@@ -8,7 +8,7 @@ library(latex2exp)
 
 library(coda)
 library(Rcpp)
-library(MCMCglmm)
+libraryll
 
 library(moiR)
 load_all('.')
@@ -29,7 +29,7 @@ XBMsimulate<-function(backingpath="databig",filename="example",n,m,force=F){
   if(force){
     system(paste("rm",paste0(backingpath,"/",filename,".bk")))
   }
-  x <- filebacked.big.matrix(n, m, type='int', init= 0,
+  x <- filebacked.big.matrix(n, m, type='double', init= 0,
                              backingpath = backingpath,
                              backingfile=paste0(filename,".bk"),
                              descriptorfile=paste0(filename,".desc")

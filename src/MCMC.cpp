@@ -54,11 +54,14 @@ using namespace arma;
 /// Utilities with matrices
 ////////////////////////////////////////////////////////////////////////////////
 
+// To transform from two matrices
+// mat  A = randu<mat>(5,5);
+// fmat B = conv_to<fmat>::from(A);
 
 // [[Rcpp::export]]
 bool BMsimulate(SEXP A){
       Rcpp::XPtr<BigMatrix> bigMat(A);
-      MatrixAccessor<int> macc(*bigMat);
+      MatrixAccessor<double> macc(*bigMat);
 
       NumericVector maf = Rcpp::runif( bigMat->ncol(), 0,0.49);
 
