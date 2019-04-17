@@ -21,7 +21,7 @@
 #include <RcppEigen.h>
 using namespace Rcpp;
 using namespace std;
-using namespace arma;
+// using namespace arma;
 
 #include <bigmemory/MatrixAccessor.hpp>
 #include <bigmemory/isna.hpp>
@@ -58,6 +58,60 @@ using namespace arma;
 // mat  A = randu<mat>(5,5);
 // fmat B = conv_to<fmat>::from(A);
 
+
+#include <Rcpp.h>
+#include <fstream>
+#include <sstream>
+#include <string>
+using namespace Rcpp;
+
+
+//Function is taking a path to a numeric file and return the same datain a NumericMatrix object
+// [[Rcpp::export]]
+NumericMatrix readfilecpp(std::string path, int rows, int cols){
+    NumericMatrix output(cols,rows);// output matrix (specifying the size is critical otherwise R crashes)
+    std::ifstream myfile(path.c_str()); //Opens the file. c_str is mandatory here so that ifstream accepts the string path
+    std::string line;
+    std::getline(myfile,line,'\n'); //skip the first line (col names in our case). Remove those lines if note necessary
+
+       for (int row=0; row<rows; ++row){ // basic idea: getline() will read lines row=0:19 and for each line will put the value separated by ',' into 46749 columns
+           std::string line;
+           std::getline(myfile,line,'\n'); //Starts at the second line because the first one was ditched previously
+           if(!myfile.good() ) //If end of rows then break
+               break;
+           std::stringstream iss(line); // take the line into a stringstream
+           std::string val;
+           std::getline(iss,val,','); ///skips the first column (row names)
+           for (int col=0; col<cols; ++col ){
+             std::string val;
+             std::getline(iss,val,','); //reads the stringstream line and separate it into 49749 values (that were delimited by a ',' in the stringstream)
+             std::stringstream convertor(val); //get the results into another stringstream 'convertor'
+             convertor >> output(col,row); //put the result into our output matrix at for the actual row and col
+           }
+       }
+    return(output);
+}
+
+
+//Function is taking a path to a numeric file and return the same datain a NumericMatrix object
+// [[Rcpp::export]]
+NumericVector readfilevector(std::string path, int rows){
+    NumericVector output(rows);// output matrix (specifying the size is critical otherwise R crashes)
+    std::ifstream myfile(path.c_str()); //Opens the file. c_str is mandatory here so that ifstream accepts the string path
+    std::string line;
+    std::getline(myfile,line,'\n'); //skip the first line (col names in our case). Remove those lines if note necessary
+
+       for (int row=0; row<rows; ++row){ // basic idea: getline() will read lines row=0:19 and for each line will put the value separated by ',' into 46749 columns
+           std::string line;
+           std::getline(myfile,line,'\n'); //Starts at the second line because the first one was ditched previously
+           if(!myfile.good() ) //If end of rows then break
+               break;
+           std::stringstream iss(line); // take the line into a stringstream
+           iss >> output(row); //put the result into our output matrix at for the actual row and col
+         }
+    return(output);
+}
+
 // [[Rcpp::export]]
 bool BMsimulate(SEXP A){
       Rcpp::XPtr<BigMatrix> bigMat(A);
@@ -75,7 +129,57 @@ bool BMsimulate(SEXP A){
 }
 
 // [[Rcpp::export]]
-arma::Mat<double> BMsubset(SEXP A, const arma::uvec & myrows, const arma::uvec & mycols ){
+bool BMwrite012(SEXP A, std::string outfile){
+     // Accessor
+      Rcpp::XPtr<BigMatrix> bigMat(A);
+      MatrixAccessor<double> macc(*bigMat);
+      // Open file
+      ofstream myfile;
+      myfile.open(outfile);
+
+      // header looks like ._A
+      std::string head;
+      std::string spacer=" ";
+      for(int l=0;l< bigMat->ncol(); l++) head.append("._A");
+      myfile<<head<<"\n";
+
+      // the matrix
+      for (int i = 0; i < bigMat->nrow(); i++) {
+        for (int j = 0; j <bigMat->ncol(); j++) {
+          myfile<<macc[j][i]<<" ";
+        }
+        myfile<<"\n";
+      }
+      return Rcpp::wrap(true);
+}
+
+
+// [[Rcpp::export]]
+bool BMwritePED(SEXP A, std::string outfile){
+     // Accessor
+      Rcpp::XPtr<BigMatrix> bigMat(A);
+      MatrixAccessor<double> macc(*bigMat);
+      // Open file
+      ofstream myfile;
+      myfile.open(outfile);
+
+      // the matrix
+      double val=0;
+      for (int i = 0; i < bigMat->nrow(); i++) {
+        for (int j = 0; j <bigMat->ncol(); j++) {
+          val= (macc[j][i]);
+          if (val==0) myfile<< "C C" <<" ";
+          else myfile<< "A A" <<" ";
+        }
+        myfile<<"\n";
+      }
+      return Rcpp::wrap(true);
+}
+
+// [[Rcpp::export]]
+arma::Mat<double> BMsubset(SEXP A,
+                           const arma::uvec & myrows,
+                           const arma::uvec & mycols ){
       Rcpp::XPtr<BigMatrix> bigMat(A);
       arma::Mat<double> X0((double*) bigMat->matrix(), bigMat->nrow(), bigMat->ncol(), false, false);
                                       // consider saying true, perhaps is faster
@@ -123,14 +227,14 @@ arma::mat Xmvcenter(arma::mat X){
 }
 
 // [[Rcpp::export]]
-arma::mat LDrelative(SEXP A, arma::uvec  m, bool debug = false){
+arma::mat LDrelative(SEXP A, arma::uvec  mycols, bool debug = false){
 
   Rcpp::XPtr<BigMatrix> bigMat(A);
   if(bigMat->matrix_type() !=8) stop("Big matrix is not of type double");
 
   // Read the genome matrix from address
   arma::Mat<double> X((double*) bigMat->matrix(), bigMat->nrow(), bigMat->ncol(), false, false);
-  X=X.cols(m);
+  X=X.cols(mycols);
 
   // mean and var center for LD calculation
   X=Xmvcenter(X);
@@ -159,16 +263,19 @@ arma::mat LDrelative(arma::mat X, bool debug = false){
 }
 
 // [[Rcpp::export]]
-double modeC(const arma::vec& ar){
-  return(arma::median(ar));
+double medianC(const arma::vec& ar, double burnin=0.1){
+  arma::vec tosub;
+  tosub = arma::linspace((int)round(ar.n_elem * burnin), ar.n_elem);
+  uvec indices = conv_to<uvec>::from(tosub);
+  return(arma::median(ar.elem( indices)));
 }
 
 // [[Rcpp::export]]
-arma::vec modeCmat(const arma::mat& ar){
+arma::vec medianCmat(const arma::mat& ar,double burnin=0.1){
   arma::vec res(ar.n_rows);
   res.fill(0.0);
   for(int i=0; i<ar.n_rows; i++){
-    double tmp=arma::median(ar.row(i));
+    double tmp=medianC(ar.row(i),burnin);
     res(i) = tmp;
   }
   return(res);
@@ -178,6 +285,21 @@ arma::vec modeCmat(const arma::mat& ar){
 /// GWA
 ////////////////////////////////////////////////////////////////////////////////
 
+// [[Rcpp::export]]
+List accuracies (const arma::vec & y,
+                         const arma::vec & what){
+  arma::mat xs(what.n_elem, 2);
+  xs.fill(1);
+  xs.col(1)=what;
+  arma::colvec coef = arma::solve(xs, y);
+  double R2= 1- (sum(pow(y-xs*coef,2))/
+                 sum(pow(y-arma::mean(y),2))
+                 );
+  return List::create(Named("a") = coef(0),
+                      Named("b")=coef(1),
+                      Named("R2")=R2
+                      );
+}
 
 // [[Rcpp::export]]
 arma::colvec My(const arma::colvec & y, const arma::colvec & h){
@@ -209,6 +331,39 @@ arma::colvec My(const arma::colvec & y, const arma::colvec & h){
   }
   return(m);
 }
+
+
+// [[Rcpp::export]]
+arma::colvec BMs(const SEXP A,
+                 const arma::colvec & y,
+                 const arma::uvec & mycols,
+                 const arma::uvec & myrows,
+                 bool debug=false) {
+  Rcpp::XPtr<BigMatrix> bigMat(A);
+  MatrixAccessor<double> macc(*bigMat);
+  arma::vec coef (mycols.n_elem);
+
+  for (int j = 0; j <mycols.n_elem; j++) {
+    int n1=0, n0=0;
+    double m1=0, m0=0;
+      for (int i = 0; i < myrows.n_elem; i++) {
+        if(macc[mycols(j)-1][myrows(i)-1] == 0){
+          n0++;
+          m0 += y(myrows(i)-1);
+        }else{
+          n1++;
+          m1 += y(myrows(i)-1);
+        }
+      }
+      coef(j) = (m1/n1) - (m0/n0);
+      if(isna(coef(j))) coef(j)=0;
+  }
+  double sds = sqrt(arma::var(coef));
+  for (int j = 0; j <mycols.n_elem; j++) if(abs(coef(j))>sds*3) coef(j)=0;
+  for (int j = 0; j <mycols.n_elem; j++) if(coef(j) < -1) coef(j)=-0.999;
+  return coef;
+}
+
 
 // [[Rcpp::export]]
 arma::colvec BMmgwa( arma::mat X0,
@@ -251,11 +406,11 @@ arma::vec BMridge(arma::mat X0,const arma::colvec & yraw,
 	int n = X.n_rows;
 	int p = X.n_cols;
 
-	arma::vec coef(p, fill::zeros);
-	colvec y_tilde = join_cols(y, arma::zeros<colvec>(p));
+	arma::vec coef(p, arma::fill::zeros);
+	arma::colvec y_tilde = join_cols(y, arma::zeros<arma::colvec>(p));
 
-		mat X_tilde = join_cols(X, sqrt(lambda) * eye(p, p));
-		mat Q, R;
+		arma::mat X_tilde = join_cols(X, sqrt(lambda) * arma::eye(p, p));
+		arma::mat Q, R;
 		qr_econ(Q, R, X_tilde);
 		coef = solve(R, Q.t() * y_tilde);
 
@@ -320,7 +475,7 @@ const double MIN_NUM = std::numeric_limits<float>::min();
 ///// Utilities get locations of genotypes in genome matrix from IDs attached to fitness
 // [[Rcpp::export]]
 arma::vec hsub(const arma::vec & h){
-  arma::vec hunique = unique(h);
+  arma::vec hunique = unique(h-1);
   arma::vec hpos(h.n_elem);
   for(int i=0; i<h.n_elem;i++){
     for(int j=0; j< hunique.n_elem;j++){
@@ -440,7 +595,7 @@ double PRIOR (const arma::colvec & s,
 }
 
 //[[Rcpp::export]]
-double ePRIOR(double e, double const & m=1, double const & v=0.2){
+double ePRIOR(double e, double const & m=1, double const & v=0.1){
   // return(R::dlnorm(e,m,v,true));
   return(R::dnorm(e,m,v,true));
 }
@@ -492,35 +647,36 @@ double LIKELIHOOD(const arma::vec & y,
                   const double & b, const double & a,
                   const double & p, const double & mu,
                   const double & epi,
-                  bool verbose=false,int LIKmode=2){
+                  bool verbose=false,
+                  int LIKmode=2,
+                  bool printall=false){
   double L=0;
   switch(LIKmode){
   case 1: // moc likelihood
     break;
   case 2:
     arma::vec w_;
-    if(epi==1){w_=pow(w,epi);}
+    if(epi!=1){w_=pow(w,epi);}
     else{w_=w;}
 
     double LL;
       for(int i=0; i< y.n_elem ; i ++){ // check for infinity
         LL= LLGaussMix(y(i)/mu,w_(hs(i)),w_(hs(i))*b+a,p);
 
-        if(verbose and std::isinf(LL)){
+        if((verbose and (std::isinf(LL) or std::isnan(LL))) or printall ){
         // if(std::isinf(LL)){
           cout << "---" << endl;
           cout << i << endl;
           cout << y(i) << " "<< w_(hs(i)) << " "<< w_(hs(i))*b+a <<" "<< p << endl;
           cout << LL << endl;
         }
-        L += LL;
+        if(!std::isnan(LL)) L += LL; // if there is one nan, all sum is nan
       }
     break;
   };
-  // cout<< L << endl; /////// CHECKING LIKELIHOOD!
+  if(verbose) cout<< L << endl; /////// CHECKING LIKELIHOOD!
   return(L);
 }
-
 
 // double uLIKELIHOOD(double LL, // probably no work around, the majority of genotypes will be affected by any change in parameters
 //                   const arma::vec & y,const arma::vec & hs,
@@ -568,12 +724,13 @@ double LIKELIHOOD(const arma::vec & y,
 //   return(LL);
 //   }
 
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Fitness
 ////////////////////////////////////////////////////////////////////////////////
 
    // fitness mode
-  double wmode(const double &s , const int &x, const int & FITmode){
+  double wmode(const double &s , const double &x, const int & FITmode){
     double w_;
     switch(FITmode){
       case 1:  // additive
@@ -589,7 +746,7 @@ double LIKELIHOOD(const arma::vec & y,
     return(w_ );
   }
   // add fitness contribution of one SNP to overall fitness
-  void wupdate(double &prevw, const double &s,const int &x, const int & FITmode) {     // void operator +*=(double w, double s,int x,int mode)  // operator not needed unless class
+  void wupdate(double &prevw, const double &s,const double &x, const int & FITmode) {     // void operator +*=(double w, double s,int x,int mode)  // operator not needed unless class
     switch(FITmode){
       case 1:  // additive
         prevw= prevw + wmode(s,x, FITmode);
@@ -600,7 +757,7 @@ double LIKELIHOOD(const arma::vec & y,
     }
   }
   // remove fitness contribution of one SNP to overall fitness (necessary to avoid repeating computations)
-  void unwupdate(double &prevw, const double &s,const int &x, const int & FITmode) {
+  void unwupdate(double &prevw, const double &s,const double &x, const int & FITmode) {
     switch(FITmode){
       case 1 :  // additive
         prevw= prevw - wmode(s,x, FITmode);
@@ -617,7 +774,6 @@ arma::vec wC(
                const arma::vec & s,
                const int & mode,
                double epi=1,
-               double mu=1,
                bool verbose=false){
     arma::vec w(X.n_rows); // w= new arma::vec(X.n_rows)
     w.fill(1); // need to fill otherwise unstable floats
@@ -626,31 +782,185 @@ arma::vec wC(
           wupdate(w(j),s(i),X(j,i), mode );
         }
     }
-  return(pow(w,epi)*mu);
+  return(pow(w,epi));
 }
 
 // [[Rcpp::export]]
-NumericVector wCBM(SEXP A,
-                   const NumericVector& s,
-                   const arma::uvec & myrows,
+arma::vec wCBM(SEXP A,
+                   const arma::vec & s,
                    const arma::uvec & mycols,
+                   const arma::uvec & myrows,
                    const int & mode,
                    double epi=1,
-                   double mu=1,
                    bool verbose=false){
 
   Rcpp::XPtr<BigMatrix> bigMat(A);
   MatrixAccessor<double> macc(*bigMat);
-
-  NumericVector res(myrows.n_elem);
+  arma::vec w(myrows.n_elem); // w= new arma::vec(X.n_rows)
+    w.fill(1); // need to fill otherwise unstable floats
   int i, j;
+  double val=0;
   for (j = 0; j <mycols.n_elem; j++) {
     for (i = 0; i < myrows.n_elem; i++) {
-      res[i] += macc[mycols(j)][myrows(i)] * s[j];
+      val= (macc[mycols(j)-1][myrows(i)-1] );
+      // val= (macc[j][i] );
+      wupdate(w(i),s(j), val, mode );
     }
   }
-  return res;
+  return(pow(w,epi));
 }
+
+// [[Rcpp::export]]
+arma::vec wCBM2(SEXP A,
+                   const arma::vec & s,
+                   const arma::uvec & mycols,
+                   const arma::uvec & myrows,
+                   const int & mode,
+                   double epi=1,
+                   bool verbose=false){
+
+  Rcpp::XPtr<BigMatrix> bigMat(A);
+  MatrixAccessor<double> macc(*bigMat);
+  arma::vec w(bigMat->nrow()); // w= new arma::vec(X.n_rows)
+  w.fill(1); // need to fill otherwise unstable floats
+  double val=0;
+  int i, j;
+  for (j = 0; j <bigMat->ncol(); j++) {
+    for (i = 0; i < bigMat->nrow(); i++) {
+      val= (macc[j][i] );
+      wupdate(w(i),s(j), val, mode );
+    }
+  }
+  return(pow(w,epi));
+}
+
+// [[Rcpp::export]]
+void wCBMupdate(arma::vec wnew,
+                SEXP A,
+                const arma::uvec & mycols,
+                const arma::uvec & myrows,
+                const int & indecito,
+                const double & s0,
+                const double & s1,
+                const int & mode){
+        Rcpp::XPtr<BigMatrix> bigMat(A);
+        MatrixAccessor<double> macc(*bigMat);
+        double val=0;
+        for(int j=0; j < myrows.n_elem ; j++){
+          val= (macc[indecito][myrows(j)-1]) ;
+          unwupdate(wnew(j),s0, val, mode);
+          wupdate(wnew(j),s1,val, mode);
+         }
+  }
+// [[Rcpp::export]]
+arma::vec wCBMupdateforR(arma::vec wnew,
+                SEXP A,
+                const arma::uvec & mycols,
+                const arma::uvec & myrows,
+                const int & indecito,
+                const double & s0,
+                const double & s1,
+                const int & mode){
+  Rcpp::XPtr<BigMatrix> bigMat(A);
+        MatrixAccessor<double> macc(*bigMat);
+        double val=0;
+        for(int j=0; j < myrows.n_elem ; j++){
+          val= (macc[indecito][myrows(j)-1]) ;
+          unwupdate(wnew(j),s0, val, mode);
+          wupdate(wnew(j),s1,val, mode);
+         }
+  return(wnew);
+}
+// [[Rcpp::export]]
+arma::vec sampleWC(
+                    const arma::vec & w,
+                    const double & a,
+                    const double & b,
+                    const double & p,
+                    const int & rep
+                    ){
+  arma::vec y(w.n_elem * rep);
+  y.fill(0);
+  double val=0;
+  int count=0;
+  for(int i=0; i<w.n_elem ; i++){
+    for(int j=0; j<rep;j++){
+      val = Rcpp::rnorm(1,w(i), abs(a+(w(i)*b)))(0);
+      if(val<0) val=0;
+      if(Rcpp::runif(1)(0) < p ) val=0;
+      y[i] =val;
+      count++;
+    }
+  }
+  return(y);
+}
+
+// [[Rcpp::export]]
+bool ssaveC(arma::vec s, std::string path){
+  s.save(path,arma::raw_ascii);
+  return(wrap(true));
+}
+// // [[Rcpp::export]]
+// arma::vec ssimC(int nsnp,
+//                 double svar){
+//   arma::vec news(nsnp);
+//   if(svar==0.05){
+//     news.load("databig/s_svar05.txt");
+//   }else if(svar==0.25){
+//     news.load("databig/s_svar25.txt");
+//   }else if(svar==0.5){
+//     news.load("databig/s_svar50.txt");
+//   } else{
+//     cout << "S values not found for accuracy calculations!" << endl;
+//     news=exp(Rcpp::rnorm(nsnp,0,svar))-1;
+//   }
+//   return news;
+// }
+
+// [[Rcpp::export]]
+arma::vec ssimC(int nsnp,
+                double svar){
+  arma::vec news(nsnp);
+  news.load("databig/s_svar01.txt");
+  news= exp( log(1+news) * (svar/0.01) )-1 ;
+  //
+  // if(svar==0.05){
+  //   news.load("databig/s_svar05.txt");
+  // }else if(svar==0.25){
+  //   news.load("databig/s_svar25.txt");
+  // }else if(svar==0.5){
+  //   news.load("databig/s_svar50.txt");
+  // } else{
+  //   cout << "S values not found for accuracy calculations!" << endl;
+  //   news=exp(Rcpp::rnorm(nsnp,0,svar))-1;
+  // }
+  return news;
+}
+
+// // [[Rcpp::export]]
+// List wsimC(SEXP A,
+//                    const arma::uvec & myrows,
+//                    const arma::uvec & mycols,
+//                    const double & b,
+//                    const double & a,
+//                    const double & p,
+//                    const double & mu,
+//                    const double & epi,
+//                    const double & svar,
+//                    const int & mode,
+//                    int rep=1
+//                   ){
+//
+//   arma::vec s, Ey, y, h;
+//   s = ssimC(mycols.n_elem,svar);
+//   Ey=wCBM(A,s,myrows,mycols,mode,epi,mu);
+//   y=sampleWC(Ey,a,b,p,rep = rep);
+//   // h=Rcpp::sort(Rcpp::rep(myrows,rep)); // CHECK BUG - this needed if want to simulate replicates per genotype
+//   return(List::create(Named("w")=Ey ,
+//                       Named("y")=y )
+//         );
+// }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 /// MCMC
@@ -670,21 +980,24 @@ class NAP{
     int npar=7; // update if new parameters are added
 
     // s parameters and fitness
-    arma::vec s; int nsnp=100; double smin; double smax;
+    arma::vec s; int nsnp; double smin; double smax;
     arma::vec y;
     arma::vec hs;
     arma::vec w;
-    int nind=515;
+    int nind;
     arma::mat X;
+    arma::uvec  mycols;
+    arma::uvec  myrows;
+
 
     // misc
     int nupdates=1; // 0 for all
     bool verbose=false;
     bool test=false;
-    double updateratio= -9.0;
-    double bw=0.001; /// BANDWIDT OF CHANGES IS REALLY IMPORTANT HARDCODED PARAM.
-    int iterations=1000;
-    double burnin=0.1;
+    double updateratio;
+    double bw; /// BANDWIDT OF CHANGES IS REALLY IMPORTANT HARDCODED PARAM.
+    int iterations;
+    double burnin;
     int iter=0;
     int Smode; int PRImode; int LIKmode ;int FITmode;
 
@@ -701,25 +1014,25 @@ class NAP{
             const arma::vec & y_,
             const arma::vec & h,
             const SEXP & A_, // instead of arma::mat X,
-            const arma::uvec & m, // the positions of SNPs // check start 0 vs 1
-            const arma::uvec & n , // the positions of individuals
+            const arma::uvec & mycols_, // the positions of SNPs // check start 0 vs 1
+            const arma::uvec & myrows_ , // the positions of individuals
             arma::vec & s_,
 
-            double b_=0.5,double bmin_=0,double bmax_=1,
-            double a_=0.1,double amin_=0,double amax_=1,
-            double p_=0.5,double pmin_=0,double pmax_=1,
-            double mu_=1,double mumin_=0, double mumax_=50,
-            double epi_=1,double epimin_=0.5, double epimax_=2,
-            double svar_=0.1,double svarmin_=0, double svarmax_=5,
-            double ss_=0.1,double ssmin_=0, double ssmax_=1,
-            double smin_=-0.98039215686274505668, double smax_=50,
+            double b_,double bmin_,double bmax_,
+            double a_,double amin_,double amax_,
+            double p_,double pmin_,double pmax_,
+            double mu_,double mumin_, double mumax_,
+            double epi_,double epimin_, double epimax_,
+            double svar_,double svarmin_, double svarmax_,
+            double ss_,double ssmin_, double ssmax_,
+            double smin_, double smax_,
 
-            int iterations_=1000, double burnin_=0.1,
-            int Smode_=2,int LIKmode_=3, int PRImode_=2, int FITmode_=2,
-            bool verbose_=false,
-            bool test_=false,
-            double updateratio_ = -9.0,
-            double bw_=0.01
+            int iterations_, double burnin_,
+            int Smode_,int LIKmode_, int PRImode_, int FITmode_,
+            bool verbose_,
+            bool test_,
+            double updateratio_,
+            double bw_
             ){
       ////////////////
       // Initialize //
@@ -733,13 +1046,15 @@ class NAP{
       smin=smin_;smax=smax_;
 
       A=A_;
-      nsnp=m.n_elem;
-      nind=n.n_elem;
+      mycols=mycols_;
+      myrows=myrows_;
+      nsnp=mycols.n_elem;
+      nind=myrows.n_elem;
       s=s_;
 
       y=y_;
       // hs=hsub(h); // BUG CHECK
-      hs=h-1; // BUG CHECK
+      hs=h-1; // BUG CHECK // old
 
       iterations=iterations_;burnin=burnin_;
       Smode=Smode_;LIKmode=LIKmode_;PRImode=PRImode_;FITmode=FITmode_;
@@ -764,24 +1079,25 @@ class NAP{
       par_chain(6,0)=ss; //
 
       /////////////////////////
-     // GENOME MATRIX //
-      X.zeros(n.n_elem,m.n_elem);
-      if(TYPEOF(A) == EXTPTRSXP){
-      cout<< "Reading external pointer and subsetting genome matrix ... "<<endl;
-         X=BMsubset(A,n,m);
-      }else if(TYPEOF(A) == REALSXP){
-      cout<< "Matrix provided already subsetted from R"<<endl;
-        // NumericMatrix Xr(A);
-        // cout << " nrow= " << Xr.nrow() << " ncol= " << Xr.ncol() << endl;
-        // arma::mat X(Xr.begin(), Xr.nrow(), Xr.ncol(), false); // this was the original
-         // X(Xr.begin(), Xr.nrow(), Xr.ncol(), false); // without the arma::mat at the beginning does not work
-         // arma::mat X=A; // no viable converstion
-        NumericMatrix Xr(A);
-        X = as<arma::mat>( Xr ) ;
-        X=Xmvcenter(X); // CHECK FOR BUGS!
+     // GENOME MATRIX // Trying to get rid of the transformation
+    //   X.zeros(n.n_elem,m.n_elem);
+    //   if(TYPEOF(A) == EXTPTRSXP){
+    //   cout<< "Reading external pointer and subsetting genome matrix ... "<<endl;
+    //      X=BMsubset(A,n,m);
+    //   }else if(TYPEOF(A) == REALSXP){
+    //   cout<< "Matrix provided already subsetted from R"<<endl;
+    //     // NumericMatrix Xr(A);
+    //     // cout << " nrow= " << Xr.nrow() << " ncol= " << Xr.ncol() << endl;
+    //     // arma::mat X(Xr.begin(), Xr.nrow(), Xr.ncol(), false); // this was the original
+    //      // X(Xr.begin(), Xr.nrow(), Xr.ncol(), false); // without the arma::mat at the beginning does not work
+    //      // arma::mat X=A; // no viable converstion
+    //     NumericMatrix Xr(A);
+    //     X = as<arma::mat>( Xr ) ;
+    //     X=Xmvcenter(X); // CHECK FOR BUGS!
+    //
+    // }
 
-      }
-    };
+    }; // end class
 
     ////////////////////////////////////////////////////////////////////////////
     // functions
@@ -797,16 +1113,31 @@ class NAP{
           news=Rcpp::runif(nsnp,smin,smax);
           break;
         case 2:
-          news=exp(Rcpp::rnorm(nsnp,0,svar))-1;
+          // news=exp(Rcpp::rnorm(nsnp,0,0.01))-1;
+          news=Rcpp::rnorm(nsnp,0,0.01);
           break;
         }
        s=news;
        s_chain.col(0)=s;
       }
-     void Sstartgwa(){
+     // void Sstartgwa(){
+     //    arma::vec news;
+     //    arma::vec ymeans=My(y,hs);
+     //    news=BMridge(X,ymeans,1); ///////////// BUG CAREFULL GWA
+     //    for(int j;j<news.n_elem;j++){
+     //      if(news(j)< -1) news(j) = -0.99;
+     //    }
+     //    s=news;
+     //    s_chain.col(0)=s;
+     // }
+     void Sstartdif(){
+       if(verbose) cout << "starting S using w1-w0" <<endl;
         arma::vec news;
-        arma::vec ymeans=My(y,hs);
-        news=BMridge(X,ymeans,1); ///////////// BUG CAREFULL GWA
+        // if(verbose) cout << "calculate average per genotype" <<endl;
+        // arma::vec ymeans=My(y,hs);
+        if(verbose) cout << "calculate w1-w0" <<endl;
+        news=BMs(A,y,mycols,myrows); ///////////// BUG CAREFULL GWA
+        if(verbose) cout << "correct s < -1 " <<endl;
         for(int j;j<news.n_elem;j++){
           if(news(j)< -1) news(j) = -0.99;
         }
@@ -859,6 +1190,16 @@ class NAP{
       par_chain(5,0)=Rcpp::runif(1,svarmin,svarmax)(0);
       par_chain(6,0)=Rcpp::runif(1,ssmin,ssmax)(0);
     };
+   void Ggeneralist(){
+      if(verbose) cout << "starting hyperparameters" <<endl;
+      par_chain(0,0)=0.1;
+      par_chain(1,0)=0.1;
+      par_chain(2,0)=0.1;
+      par_chain(3,0)=1;
+      par_chain(4,0)=1;
+      par_chain(5,0)=0.1;
+      par_chain(6,0)=0;
+    };
     void Gcopy(){par_chain.col(iter)=par_chain.col(iter-1);}
 
     void Gupdate(){
@@ -910,19 +1251,15 @@ class NAP{
         if(verbose) cout << "New hyperpar:" << newval << endl;
         par_chain(randomIndex,iter) = newval;
       }
-      // if(verbose) cout << "End loop" << endl;
   }
   ////////////////////
   // calculate fitness
   void FITstart(){
     if(verbose) cout << "start computing fitness from scratch" <<endl;
-    arma::vec w=wC(X,s_chain.col(0),FITmode,par_chain(4,0),par_chain(3,0)); // matrix, s, mode, epi, mu
-    // arma::vec w(nind,1.0); // w= new arma::vec(X.n_rows)
-    // for(int j=0; j < X.n_rows ; j++){
-    // for (int i = 0; i < X.n_cols; i ++) {
-    //       wupdate(w(j),s_chain(i,iter),X(j,i), par_chain(4,iter) ); // epi in position 4
-    //     }
-    // } // THIS WAS CAUSING A BUG
+    // arma::vec w=wC(X,s_chain.col(0),FITmode,par_chain(4,0)); // matrix, s, mode, epi, mu
+    arma::vec w=wCBM(A,s_chain.col(0),
+                     mycols,myrows, // CHECK BUG positions. Inside NAP already subtracted
+                     FITmode,par_chain(4,0)); // CHECK BUG
     w_chain.col(iter)=w;
   }
   void FITcopy(){w_chain.col(iter)=w_chain.col(iter-1);}
@@ -934,19 +1271,24 @@ class NAP{
     int indecito=whichchanged(s_chain.col(iter),s_chain.col(iter-1));
     // update selection
     if(indecito != -9){ // only update if s and s2 are not identical
-      for(int j=0; j < X.n_rows ; j++){
-        unwupdate(wnew(j),s_chain(indecito,iter-1),X(j,indecito), FITmode);
-       }
-      for(int j=0; j < X.n_rows ; j++){
-        wupdate(wnew(j),s_chain(indecito,iter),X(j,indecito), FITmode);
-       }
+      if(verbose) cout << "selection coef changed for SNP " <<indecito <<endl;
+        Rcpp::XPtr<BigMatrix> bigMat(A);
+        MatrixAccessor<double> macc(*bigMat);
+        double val=0;
+        for(int j=0; j < myrows.n_elem ; j++){
+          val= (macc[indecito][myrows(j)-1]) ;
+          if(val!=0){
+            unwupdate(wnew(j),s_chain(indecito,iter-1), val, FITmode);
+            wupdate(wnew(j),s_chain(indecito,iter),val, FITmode);
+          }
+         }
     }
     // update epistasis
     if(par_chain(4,iter-1) != par_chain(4,iter)){
       wnew = pow(wnew,1/par_chain(4,iter-1));
       wnew = pow(wnew,par_chain(4,iter));
     }
-      w_chain.col(iter)=wnew;
+   w_chain.col(iter)=wnew;
   }
   ////////////////////
   // calculate probabilities
@@ -956,7 +1298,7 @@ class NAP{
         newpri=PRIOR(s_chain.col(iter),
                       par_chain(5,iter), // svar in position 5
                       par_chain(6,iter), // ss in position 6
-                      PRImode); //+ ePRIOR(par_chain(4,iter)); // epi in position 4
+                      PRImode); // + ePRIOR(par_chain(4,iter)); // epi in position 4
         newlik=LIKELIHOOD(y,hs,
                                      w_chain.col(iter),
                                      par_chain(0,iter), // b in position 0
@@ -979,7 +1321,7 @@ class NAP{
                        s_chain.col(iter-1),s_chain.col(iter),
                        par_chain(5,iter-1),par_chain(5,iter), // svar in position 5
                        par_chain(6,iter-1),par_chain(6,iter), // ss in position 6
-                       PRImode) ;//+ ePRIOR(par_chain(4,iter)); // epi in position 4
+                       PRImode);// + ePRIOR(par_chain(4,iter)); // epi in position 4
         newlik=LIKELIHOOD(y,hs,
                                      w_chain.col(iter),
                                      par_chain(0,iter), // b in position 0
@@ -991,7 +1333,7 @@ class NAP{
         pri_chain(iter)=newpri;
         lik_chain(iter)=newlik;
         prob_chain(iter)=newpri + newlik;
-}
+    }
 
   ////////////////////
   void additerations() {iter ++;}
@@ -1000,6 +1342,8 @@ class NAP{
     // Ratio of probs
     double Paccept= exp( prob_chain(iter) - prob_chain(iter-1));
     bool accept = Rcpp::runif(1)(0)<Paccept;
+    if(verbose) cout<< "Pt-1 " << prob_chain(iter-1) <<endl;
+    if(verbose) cout<< "Pt " << prob_chain(iter) <<endl;
     if(verbose) cout<< "Accept proposal " << accept <<endl;
     if(accept){
       ok_chain(iter)=1;
@@ -1016,14 +1360,21 @@ class NAP{
   }
     ////////////////////
   List report(){
-    arma::vec shat=modeCmat(s_chain);
-    arma::vec par=modeCmat(par_chain);
-    arma::vec what=wC(X,shat,FITmode,par(4),par(3)); // matrix, s, mode, epi, mu
+    // Summarize chain
+    arma::vec shat=medianCmat(s_chain);
+    arma::vec par=medianCmat(par_chain);
+    arma::vec what=wCBM(A,shat,mycols,myrows,FITmode);
+    // Calculate pseudo-p
+
+    // Calculate accuracies
+    List res=accuracies(y,what);
+
     return List::create(Named("chain") = s_chain.t(),
                         Named("shat")=shat,
                         Named("parchain") = par_chain.t(),
                         Named("par")=par,
                         Named("w")=what,
+                        Named("accuracy")=res,
                         Named("posterior") = prob_chain,
                         Named("prior") = pri_chain,
                         Named("likelihood") = lik_chain,
@@ -1040,12 +1391,13 @@ class NAP{
                         Named("FITmode") = FITmode);
   }
 
+
   ////////////////////
   // MAIN
   ////////////////////
     void RUNTEST(bool verbose=false){
       int iter=0;
-      // Sstart();
+      // S start();
       // Gstart(); // BUG CHECK!
       FITstart();
       PROBstart();
@@ -1066,17 +1418,15 @@ class NAP{
     ///////////////////////////////////////////////////////////////////////////
     void MAIN(){
     ///////////////////////////////////////////////////////////////////////////
+    cout << "----------------------------------------------------------"<< endl;
+
       int iter=0;
       cout<< endl;
-      cout<< "Arguments:"<<endl;
+      cout<< "# individual's observations = "<<  y.n_elem <<endl;
+      cout<< "# of SNPs = "<<  s.n_elem <<endl;
       cout<< "# iterations = "<< iterations <<endl;
-      cout<< "----------"<<endl;
-      cout<< "Total number of individual's observations = "<<  y.n_elem <<endl;
-      cout<< "Total number of SNPs = "<<  s.n_elem <<endl;
-      cout<< "----------"<<endl;
-      cout<< "TEST run = "<< test <<endl;
-      cout<< "Verbose = "<< verbose <<endl;
-      cout<< "----------"<<endl;
+      cout<< "TEST  = "<< (bool)test <<endl;
+      cout<< "Verbose = "<< (bool)verbose <<endl;
       cout<< "Initializing & start chrono ... "<<endl;
       std::chrono::time_point<std::chrono::system_clock> start, end; // start chronometer values
       start = std::chrono::system_clock::now();
@@ -1084,27 +1434,32 @@ class NAP{
 
     /// Start NAP & handle -INF probability
     ///////////////////////////////////////////////////////////////////////////
+    Gstart();
+    Sstartdif();
     FITstart();
     PROBstart();
-    // int attemptcounter=0;
-    // int maxattempts=1000;
-    // while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
-    //   if(verbose && attemptcounter==0) cout << "Running proposals and first probability" << endl;
-    //   if(attemptcounter==maxattempts) stop("Attempted initializing 1000 times!!! ... tune starting parameters!");
-    //   if(attemptcounter==1) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
-    //   Sstart();
-   //   // Sstartgwa();
-    //   Gstart(); // BUG careful
-    //   FITstart();
-    //   PROBstart();
-    //   attemptcounter++;
+    // if(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
+    //   stop("Attempted initializing but Probabiligy is -Inf !!! ... tune starting parameters!");
     // }
-    // if(verbose) cout << "Successful MCMC start after " << attemptcounter << " attempts " << endl<< endl;
+
+   int attemptcounter=0;
+   int maxattempts=1000;
+   while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
+     if(verbose && attemptcounter==0) cout << "Running proposals and first probability" << endl;
+     if(attemptcounter==maxattempts) stop("Attempted initializing 1000 times!!! ... tune starting parameters!");
+     if(attemptcounter==1) cout << "Posterior is infinite!!!. Attempting new start..." << endl<< endl;
+     // Sstart();
+     Gstart(); // BUG careful
+     // Ggeneralist(); // BUG careful
+     FITstart();
+     PROBstart();
+     attemptcounter++;
+   }
+   if(verbose) cout << "Successful MCMC start after " << attemptcounter << " attempts " << endl<< endl;
 
 
     /// Run MCMC
     ///////////////////////////////////////////////////////////////////////////
-    if(verbose) cout << "----------"<< endl;
     if(verbose) cout << "*** Starting iterations ***" << endl;
 
     if(updateratio== -9.0) updateratio = (double)s.n_elem/((double)s.n_elem+(double)par_chain.n_rows);
@@ -1125,6 +1480,8 @@ class NAP{
         FITcopy();
         FITupdate();
         PROBupdate();
+        // if(verbose) cout << "w_1: " << w_chain.col(l) << endl;
+        // if(verbose) cout << "s_1: " << s_chain.col(l) << endl;
         if(verbose) cout << "w_1: " << w_chain(1,l) << endl;
         if(verbose) cout << "s_1: " << s_chain(1,l) << endl;
         if(verbose) cout << "b: " << par_chain(0,l) << endl;
@@ -1149,14 +1506,17 @@ class NAP{
     cout<< endl;
     cout<< "Summary:"<<endl;
     cout<< "Acceptance ratio = "<< sum(ok_chain) / iterations << endl;
+    cout<< "Final prior = "<< pri_chain(iterations) << endl;
+    cout<< "Final likelihood = "<< lik_chain(iterations) << endl;
     cout<< "Final posterior = "<< prob_chain(iterations) << endl;
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds1 = end-start;
-    std::cout << "elapsed time: " << elapsed_seconds1.count() << " seconds" <<endl;
-    cout<< "----------"<<endl;
+    std::cout << "elapsed time: " << elapsed_seconds1.count() << " seconds"<<endl;
+    cout << "----------------------------------------------------------"<< endl;
     cout<< ends;
     }
-};
+
+}; // end class NAP
 
 
 //main function
@@ -1165,85 +1525,64 @@ List napMCMC(
             arma::vec & y,
             arma::vec & h,
             const SEXP & A, // instead of arma::mat X,
-            const arma::uvec m, // the positions of SNPs
-            const arma::uvec n , // the positions of individuals
+            const arma::uvec mycols, // the positions of SNPs
+            const arma::uvec myrows , // the positions of individuals
             arma::vec & s,
-            double b=0.5,double bmin=0,double bmax=1,
+            double b=0.1,double bmin=0,double bmax=1,
             double a=0.1,double amin=0,double amax=1,
-            double p=0.5, double pmin=0,double pmax=1,
-            double mu=1,double mumin=0, double mumax=50,
+            double p=0.1, double pmin=0,double pmax=1,
+            double mu=1,double mumin=1, double mumax=1,
             double epi=1,double epimin=1, double epimax=1,
-            double svar=0.1,double svarmin=0.001, double svarmax=1,
-            double ss=0.1,double ssmin=0, double ssmax=1,
+            double svar=0.1,double svarmin=0.001, double svarmax=0.5,
+            double ss=0,double ssmin=0, double ssmax=0.0,
             double smin=-0.98039215686274505668, double smax=10,
             int iterations=1e4,
             double burnin=0.1,
-            int Smode=2,int LIKmode=2, int PRImode=1, int FITmode=2,
+            int Smode=2,int LIKmode=2, int PRImode=2, int FITmode=2,
             bool verbose=false,
             bool test=false,
             double updateratio= -9.0,
             double bw= 0.001,
             std::string file2sink= "output.log",
-            bool sink2file = false){
+            bool sink2file = false
+        ){
 
   // direct outputs
   if(sink2file) std::freopen(file2sink.c_str(), "w", stdout);
 
   // start class and analyses
-  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
+  // cout << "COLD MCMC CHAIN" << endl;
+  NAP nap1(y,h,A,mycols,myrows,s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
           svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
           iterations,burnin,
           Smode,LIKmode,PRImode, FITmode,
           verbose, test,
           updateratio, bw
           );
+  nap1.MAIN();
+  List coldreport = nap1.report();
 
-  // run
-  nap.MAIN();
+  // cout << "HOT MCMC CHAIN" << endl;
+  // NAP nap2(y,h,A,mycols,myrows, s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
+  //         svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
+  //         iterations,burnin,
+  //         Smode,LIKmode,PRImode, FITmode,
+  //         verbose, test,
+  //         updateratio, bw*10
+  //         );
+  // nap2.MAIN();
+  // List hotreport = nap2.report();
+  //
+  // cout << "CHAINS END" << endl;
+  //
+  // if( (double)coldreport["final_likelihood"] > (double)hotreport["final_likelihood"] ){
+  //   cout << "KEEPING COLD CHAIN" << endl;
+  //   return(coldreport);
+  // }else{
+  //   cout << "KEEPING HOT CHAIN" << endl;
+  //   return(hotreport);
+  // }
+  return(coldreport);
 
-  return(nap.report());
 }
 
-// [[Rcpp::export]]
-List test_napMCMC(
-            arma::vec & y,
-            arma::vec & h,
-            const SEXP & A, // instead of arma::mat X,
-            const arma::uvec m, // the positions of SNPs
-            const arma::uvec n , // the positions of individuals
-            arma::vec & s,
-            double b=0.5,double bmin=0,double bmax=1,
-            double a=0.1,double amin=0,double amax=1,
-            double p=0.5, double pmin=0,double pmax=1,
-            double mu=1,double mumin=0, double mumax=50,
-            double epi=1,double epimin=1, double epimax=1,
-            double svar=0.1,double svarmin=0.001, double svarmax=1,
-            double ss=0.1,double ssmin=0, double ssmax=1,
-            double smin=-0.98039215686274505668, double smax=10,
-            int iterations=1e4,
-            double burnin=0.1,
-            int Smode=2,int LIKmode=2, int PRImode=1, int FITmode=2,
-            bool verbose=false,
-            bool test=false,
-            double updateratio= -9.0,
-            double bw= 0.001,
-            std::string file2sink= "output.log",
-            bool sink2file = false){
-
-  // direct outputs
-  if(sink2file) std::freopen(file2sink.c_str(), "w", stdout);
-
-  // start class and analyses
-  NAP nap(y,h,A,m,n,s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
-          svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
-          iterations,burnin,
-          Smode,LIKmode,PRImode, FITmode,
-          verbose, test,
-          updateratio, bw
-          );
-
-  // run
-  nap.RUNTEST(verbose);
-
-  return(nap.report());
-}

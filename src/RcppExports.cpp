@@ -7,6 +7,31 @@
 
 using namespace Rcpp;
 
+// readfilecpp
+NumericMatrix readfilecpp(std::string path, int rows, int cols);
+RcppExport SEXP _nap_readfilecpp(SEXP pathSEXP, SEXP rowsSEXP, SEXP colsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    Rcpp::traits::input_parameter< int >::type cols(colsSEXP);
+    rcpp_result_gen = Rcpp::wrap(readfilecpp(path, rows, cols));
+    return rcpp_result_gen;
+END_RCPP
+}
+// readfilevector
+NumericVector readfilevector(std::string path, int rows);
+RcppExport SEXP _nap_readfilevector(SEXP pathSEXP, SEXP rowsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
+    Rcpp::traits::input_parameter< int >::type rows(rowsSEXP);
+    rcpp_result_gen = Rcpp::wrap(readfilevector(path, rows));
+    return rcpp_result_gen;
+END_RCPP
+}
 // BMsimulate
 bool BMsimulate(SEXP A);
 RcppExport SEXP _nap_BMsimulate(SEXP ASEXP) {
@@ -15,6 +40,30 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
     rcpp_result_gen = Rcpp::wrap(BMsimulate(A));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BMwrite012
+bool BMwrite012(SEXP A, std::string outfile);
+RcppExport SEXP _nap_BMwrite012(SEXP ASEXP, SEXP outfileSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< std::string >::type outfile(outfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(BMwrite012(A, outfile));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BMwritePED
+bool BMwritePED(SEXP A, std::string outfile);
+RcppExport SEXP _nap_BMwritePED(SEXP ASEXP, SEXP outfileSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< std::string >::type outfile(outfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(BMwritePED(A, outfile));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -65,15 +114,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // LDrelative
-arma::mat LDrelative(SEXP A, arma::uvec m, bool debug);
-RcppExport SEXP _nap_LDrelative(SEXP ASEXP, SEXP mSEXP, SEXP debugSEXP) {
+arma::mat LDrelative(SEXP A, arma::uvec mycols, bool debug);
+RcppExport SEXP _nap_LDrelative(SEXP ASEXP, SEXP mycolsSEXP, SEXP debugSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
-    Rcpp::traits::input_parameter< arma::uvec >::type m(mSEXP);
+    Rcpp::traits::input_parameter< arma::uvec >::type mycols(mycolsSEXP);
     Rcpp::traits::input_parameter< bool >::type debug(debugSEXP);
-    rcpp_result_gen = Rcpp::wrap(LDrelative(A, m, debug));
+    rcpp_result_gen = Rcpp::wrap(LDrelative(A, mycols, debug));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -99,6 +148,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// accuracies
+List accuracies(const arma::vec& y, const arma::vec& what);
+RcppExport SEXP _nap_accuracies(SEXP ySEXP, SEXP whatSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type what(whatSEXP);
+    rcpp_result_gen = Rcpp::wrap(accuracies(y, what));
+    return rcpp_result_gen;
+END_RCPP
+}
 // My
 arma::colvec My(const arma::colvec& y, const arma::colvec& h);
 RcppExport SEXP _nap_My(SEXP ySEXP, SEXP hSEXP) {
@@ -108,6 +169,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< const arma::colvec& >::type h(hSEXP);
     rcpp_result_gen = Rcpp::wrap(My(y, h));
+    return rcpp_result_gen;
+END_RCPP
+}
+// BMs
+arma::colvec BMs(const SEXP A, const arma::colvec& y, const arma::uvec& mycols, const arma::uvec& myrows, bool debug);
+RcppExport SEXP _nap_BMs(SEXP ASEXP, SEXP ySEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP debugSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::colvec& >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
+    Rcpp::traits::input_parameter< bool >::type debug(debugSEXP);
+    rcpp_result_gen = Rcpp::wrap(BMs(A, y, mycols, myrows, debug));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -286,8 +362,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // LIKELIHOOD
-double LIKELIHOOD(const arma::vec& y, const arma::vec& hs, const arma::vec& w, const double& b, const double& a, const double& p, const double& mu, const double& epi, bool verbose, int LIKmode);
-RcppExport SEXP _nap_LIKELIHOOD(SEXP ySEXP, SEXP hsSEXP, SEXP wSEXP, SEXP bSEXP, SEXP aSEXP, SEXP pSEXP, SEXP muSEXP, SEXP epiSEXP, SEXP verboseSEXP, SEXP LIKmodeSEXP) {
+double LIKELIHOOD(const arma::vec& y, const arma::vec& hs, const arma::vec& w, const double& b, const double& a, const double& p, const double& mu, const double& epi, bool verbose, int LIKmode, bool printall);
+RcppExport SEXP _nap_LIKELIHOOD(SEXP ySEXP, SEXP hsSEXP, SEXP wSEXP, SEXP bSEXP, SEXP aSEXP, SEXP pSEXP, SEXP muSEXP, SEXP epiSEXP, SEXP verboseSEXP, SEXP LIKmodeSEXP, SEXP printallSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -301,13 +377,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double& >::type epi(epiSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
     Rcpp::traits::input_parameter< int >::type LIKmode(LIKmodeSEXP);
-    rcpp_result_gen = Rcpp::wrap(LIKELIHOOD(y, hs, w, b, a, p, mu, epi, verbose, LIKmode));
+    Rcpp::traits::input_parameter< bool >::type printall(printallSEXP);
+    rcpp_result_gen = Rcpp::wrap(LIKELIHOOD(y, hs, w, b, a, p, mu, epi, verbose, LIKmode, printall));
     return rcpp_result_gen;
 END_RCPP
 }
 // wC
-arma::vec wC(const arma::Mat<double> X, const arma::vec& s, const int& mode, double epi, double mu, bool verbose);
-RcppExport SEXP _nap_wC(SEXP XSEXP, SEXP sSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP muSEXP, SEXP verboseSEXP) {
+arma::vec wC(const arma::Mat<double> X, const arma::vec& s, const int& mode, double epi, bool verbose);
+RcppExport SEXP _nap_wC(SEXP XSEXP, SEXP sSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -315,41 +392,130 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type s(sSEXP);
     Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< double >::type epi(epiSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(wC(X, s, mode, epi, mu, verbose));
+    rcpp_result_gen = Rcpp::wrap(wC(X, s, mode, epi, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // wCBM
-NumericVector wCBM(SEXP A, const NumericVector& s, const arma::uvec& myrows, const arma::uvec& mycols, const int& mode, double epi, double mu, bool verbose);
-RcppExport SEXP _nap_wCBM(SEXP ASEXP, SEXP sSEXP, SEXP myrowsSEXP, SEXP mycolsSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP muSEXP, SEXP verboseSEXP) {
+arma::vec wCBM(SEXP A, const arma::vec& s, const arma::uvec& mycols, const arma::uvec& myrows, const int& mode, double epi, bool verbose);
+RcppExport SEXP _nap_wCBM(SEXP ASEXP, SEXP sSEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const NumericVector& >::type s(sSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type s(sSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
     Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
     Rcpp::traits::input_parameter< double >::type epi(epiSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(wCBM(A, s, myrows, mycols, mode, epi, mu, verbose));
+    rcpp_result_gen = Rcpp::wrap(wCBM(A, s, mycols, myrows, mode, epi, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// wCBM2
+arma::vec wCBM2(SEXP A, const arma::vec& s, const arma::uvec& mycols, const arma::uvec& myrows, const int& mode, double epi, bool verbose);
+RcppExport SEXP _nap_wCBM2(SEXP ASEXP, SEXP sSEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type s(sSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
+    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
+    Rcpp::traits::input_parameter< double >::type epi(epiSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(wCBM2(A, s, mycols, myrows, mode, epi, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
+// wCBMupdate
+void wCBMupdate(arma::vec wnew, SEXP A, const arma::uvec& mycols, const arma::uvec& myrows, const int& indecito, const double& s0, const double& s1, const int& mode);
+RcppExport SEXP _nap_wCBMupdate(SEXP wnewSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP indecitoSEXP, SEXP s0SEXP, SEXP s1SEXP, SEXP modeSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type wnew(wnewSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
+    Rcpp::traits::input_parameter< const int& >::type indecito(indecitoSEXP);
+    Rcpp::traits::input_parameter< const double& >::type s0(s0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
+    wCBMupdate(wnew, A, mycols, myrows, indecito, s0, s1, mode);
+    return R_NilValue;
+END_RCPP
+}
+// wCBMupdateforR
+arma::vec wCBMupdateforR(arma::vec wnew, SEXP A, const arma::uvec& mycols, const arma::uvec& myrows, const int& indecito, const double& s0, const double& s1, const int& mode);
+RcppExport SEXP _nap_wCBMupdateforR(SEXP wnewSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP indecitoSEXP, SEXP s0SEXP, SEXP s1SEXP, SEXP modeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type wnew(wnewSEXP);
+    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
+    Rcpp::traits::input_parameter< const int& >::type indecito(indecitoSEXP);
+    Rcpp::traits::input_parameter< const double& >::type s0(s0SEXP);
+    Rcpp::traits::input_parameter< const double& >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
+    rcpp_result_gen = Rcpp::wrap(wCBMupdateforR(wnew, A, mycols, myrows, indecito, s0, s1, mode));
+    return rcpp_result_gen;
+END_RCPP
+}
+// sampleWC
+arma::vec sampleWC(const arma::vec& w, const double& a, const double& b, const double& p, const int& rep);
+RcppExport SEXP _nap_sampleWC(SEXP wSEXP, SEXP aSEXP, SEXP bSEXP, SEXP pSEXP, SEXP repSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
+    Rcpp::traits::input_parameter< const double& >::type a(aSEXP);
+    Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
+    Rcpp::traits::input_parameter< const double& >::type p(pSEXP);
+    Rcpp::traits::input_parameter< const int& >::type rep(repSEXP);
+    rcpp_result_gen = Rcpp::wrap(sampleWC(w, a, b, p, rep));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ssaveC
+bool ssaveC(arma::vec s, std::string path);
+RcppExport SEXP _nap_ssaveC(SEXP sSEXP, SEXP pathSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type s(sSEXP);
+    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
+    rcpp_result_gen = Rcpp::wrap(ssaveC(s, path));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ssimC
+arma::vec ssimC(int nsnp, double svar);
+RcppExport SEXP _nap_ssimC(SEXP nsnpSEXP, SEXP svarSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type nsnp(nsnpSEXP);
+    Rcpp::traits::input_parameter< double >::type svar(svarSEXP);
+    rcpp_result_gen = Rcpp::wrap(ssimC(nsnp, svar));
     return rcpp_result_gen;
 END_RCPP
 }
 // napMCMC
-List napMCMC(arma::vec& y, arma::vec& h, const SEXP& A, const arma::uvec m, const arma::uvec n, arma::vec& s, double b, double bmin, double bmax, double a, double amin, double amax, double p, double pmin, double pmax, double mu, double mumin, double mumax, double epi, double epimin, double epimax, double svar, double svarmin, double svarmax, double ss, double ssmin, double ssmax, double smin, double smax, int iterations, double burnin, int Smode, int LIKmode, int PRImode, int FITmode, bool verbose, bool test, double updateratio, double bw, std::string file2sink, bool sink2file);
-RcppExport SEXP _nap_napMCMC(SEXP ySEXP, SEXP hSEXP, SEXP ASEXP, SEXP mSEXP, SEXP nSEXP, SEXP sSEXP, SEXP bSEXP, SEXP bminSEXP, SEXP bmaxSEXP, SEXP aSEXP, SEXP aminSEXP, SEXP amaxSEXP, SEXP pSEXP, SEXP pminSEXP, SEXP pmaxSEXP, SEXP muSEXP, SEXP muminSEXP, SEXP mumaxSEXP, SEXP epiSEXP, SEXP epiminSEXP, SEXP epimaxSEXP, SEXP svarSEXP, SEXP svarminSEXP, SEXP svarmaxSEXP, SEXP ssSEXP, SEXP ssminSEXP, SEXP ssmaxSEXP, SEXP sminSEXP, SEXP smaxSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP SmodeSEXP, SEXP LIKmodeSEXP, SEXP PRImodeSEXP, SEXP FITmodeSEXP, SEXP verboseSEXP, SEXP testSEXP, SEXP updateratioSEXP, SEXP bwSEXP, SEXP file2sinkSEXP, SEXP sink2fileSEXP) {
+List napMCMC(arma::vec& y, arma::vec& h, const SEXP& A, const arma::uvec mycols, const arma::uvec myrows, arma::vec& s, double b, double bmin, double bmax, double a, double amin, double amax, double p, double pmin, double pmax, double mu, double mumin, double mumax, double epi, double epimin, double epimax, double svar, double svarmin, double svarmax, double ss, double ssmin, double ssmax, double smin, double smax, int iterations, double burnin, int Smode, int LIKmode, int PRImode, int FITmode, bool verbose, bool test, double updateratio, double bw, std::string file2sink, bool sink2file);
+RcppExport SEXP _nap_napMCMC(SEXP ySEXP, SEXP hSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP sSEXP, SEXP bSEXP, SEXP bminSEXP, SEXP bmaxSEXP, SEXP aSEXP, SEXP aminSEXP, SEXP amaxSEXP, SEXP pSEXP, SEXP pminSEXP, SEXP pmaxSEXP, SEXP muSEXP, SEXP muminSEXP, SEXP mumaxSEXP, SEXP epiSEXP, SEXP epiminSEXP, SEXP epimaxSEXP, SEXP svarSEXP, SEXP svarminSEXP, SEXP svarmaxSEXP, SEXP ssSEXP, SEXP ssminSEXP, SEXP ssmaxSEXP, SEXP sminSEXP, SEXP smaxSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP SmodeSEXP, SEXP LIKmodeSEXP, SEXP PRImodeSEXP, SEXP FITmodeSEXP, SEXP verboseSEXP, SEXP testSEXP, SEXP updateratioSEXP, SEXP bwSEXP, SEXP file2sinkSEXP, SEXP sink2fileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type h(hSEXP);
     Rcpp::traits::input_parameter< const SEXP& >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type m(mSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec >::type mycols(mycolsSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec >::type myrows(myrowsSEXP);
     Rcpp::traits::input_parameter< arma::vec& >::type s(sSEXP);
     Rcpp::traits::input_parameter< double >::type b(bSEXP);
     Rcpp::traits::input_parameter< double >::type bmin(bminSEXP);
@@ -386,58 +552,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< double >::type bw(bwSEXP);
     Rcpp::traits::input_parameter< std::string >::type file2sink(file2sinkSEXP);
     Rcpp::traits::input_parameter< bool >::type sink2file(sink2fileSEXP);
-    rcpp_result_gen = Rcpp::wrap(napMCMC(y, h, A, m, n, s, b, bmin, bmax, a, amin, amax, p, pmin, pmax, mu, mumin, mumax, epi, epimin, epimax, svar, svarmin, svarmax, ss, ssmin, ssmax, smin, smax, iterations, burnin, Smode, LIKmode, PRImode, FITmode, verbose, test, updateratio, bw, file2sink, sink2file));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_napMCMC
-List test_napMCMC(arma::vec& y, arma::vec& h, const SEXP& A, const arma::uvec m, const arma::uvec n, arma::vec& s, double b, double bmin, double bmax, double a, double amin, double amax, double p, double pmin, double pmax, double mu, double mumin, double mumax, double epi, double epimin, double epimax, double svar, double svarmin, double svarmax, double ss, double ssmin, double ssmax, double smin, double smax, int iterations, double burnin, int Smode, int LIKmode, int PRImode, int FITmode, bool verbose, bool test, double updateratio, double bw, std::string file2sink, bool sink2file);
-RcppExport SEXP _nap_test_napMCMC(SEXP ySEXP, SEXP hSEXP, SEXP ASEXP, SEXP mSEXP, SEXP nSEXP, SEXP sSEXP, SEXP bSEXP, SEXP bminSEXP, SEXP bmaxSEXP, SEXP aSEXP, SEXP aminSEXP, SEXP amaxSEXP, SEXP pSEXP, SEXP pminSEXP, SEXP pmaxSEXP, SEXP muSEXP, SEXP muminSEXP, SEXP mumaxSEXP, SEXP epiSEXP, SEXP epiminSEXP, SEXP epimaxSEXP, SEXP svarSEXP, SEXP svarminSEXP, SEXP svarmaxSEXP, SEXP ssSEXP, SEXP ssminSEXP, SEXP ssmaxSEXP, SEXP sminSEXP, SEXP smaxSEXP, SEXP iterationsSEXP, SEXP burninSEXP, SEXP SmodeSEXP, SEXP LIKmodeSEXP, SEXP PRImodeSEXP, SEXP FITmodeSEXP, SEXP verboseSEXP, SEXP testSEXP, SEXP updateratioSEXP, SEXP bwSEXP, SEXP file2sinkSEXP, SEXP sink2fileSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec& >::type y(ySEXP);
-    Rcpp::traits::input_parameter< arma::vec& >::type h(hSEXP);
-    Rcpp::traits::input_parameter< const SEXP& >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type m(mSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec >::type n(nSEXP);
-    Rcpp::traits::input_parameter< arma::vec& >::type s(sSEXP);
-    Rcpp::traits::input_parameter< double >::type b(bSEXP);
-    Rcpp::traits::input_parameter< double >::type bmin(bminSEXP);
-    Rcpp::traits::input_parameter< double >::type bmax(bmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type a(aSEXP);
-    Rcpp::traits::input_parameter< double >::type amin(aminSEXP);
-    Rcpp::traits::input_parameter< double >::type amax(amaxSEXP);
-    Rcpp::traits::input_parameter< double >::type p(pSEXP);
-    Rcpp::traits::input_parameter< double >::type pmin(pminSEXP);
-    Rcpp::traits::input_parameter< double >::type pmax(pmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type mu(muSEXP);
-    Rcpp::traits::input_parameter< double >::type mumin(muminSEXP);
-    Rcpp::traits::input_parameter< double >::type mumax(mumaxSEXP);
-    Rcpp::traits::input_parameter< double >::type epi(epiSEXP);
-    Rcpp::traits::input_parameter< double >::type epimin(epiminSEXP);
-    Rcpp::traits::input_parameter< double >::type epimax(epimaxSEXP);
-    Rcpp::traits::input_parameter< double >::type svar(svarSEXP);
-    Rcpp::traits::input_parameter< double >::type svarmin(svarminSEXP);
-    Rcpp::traits::input_parameter< double >::type svarmax(svarmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type ss(ssSEXP);
-    Rcpp::traits::input_parameter< double >::type ssmin(ssminSEXP);
-    Rcpp::traits::input_parameter< double >::type ssmax(ssmaxSEXP);
-    Rcpp::traits::input_parameter< double >::type smin(sminSEXP);
-    Rcpp::traits::input_parameter< double >::type smax(smaxSEXP);
-    Rcpp::traits::input_parameter< int >::type iterations(iterationsSEXP);
-    Rcpp::traits::input_parameter< double >::type burnin(burninSEXP);
-    Rcpp::traits::input_parameter< int >::type Smode(SmodeSEXP);
-    Rcpp::traits::input_parameter< int >::type LIKmode(LIKmodeSEXP);
-    Rcpp::traits::input_parameter< int >::type PRImode(PRImodeSEXP);
-    Rcpp::traits::input_parameter< int >::type FITmode(FITmodeSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    Rcpp::traits::input_parameter< bool >::type test(testSEXP);
-    Rcpp::traits::input_parameter< double >::type updateratio(updateratioSEXP);
-    Rcpp::traits::input_parameter< double >::type bw(bwSEXP);
-    Rcpp::traits::input_parameter< std::string >::type file2sink(file2sinkSEXP);
-    Rcpp::traits::input_parameter< bool >::type sink2file(sink2fileSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_napMCMC(y, h, A, m, n, s, b, bmin, bmax, a, amin, amax, p, pmin, pmax, mu, mumin, mumax, epi, epimin, epimax, svar, svarmin, svarmax, ss, ssmin, ssmax, smin, smax, iterations, burnin, Smode, LIKmode, PRImode, FITmode, verbose, test, updateratio, bw, file2sink, sink2file));
+    rcpp_result_gen = Rcpp::wrap(napMCMC(y, h, A, mycols, myrows, s, b, bmin, bmax, a, amin, amax, p, pmin, pmax, mu, mumin, mumax, epi, epimin, epimax, svar, svarmin, svarmax, ss, ssmin, ssmax, smin, smax, iterations, burnin, Smode, LIKmode, PRImode, FITmode, verbose, test, updateratio, bw, file2sink, sink2file));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -499,7 +614,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_nap_readfilecpp", (DL_FUNC) &_nap_readfilecpp, 3},
+    {"_nap_readfilevector", (DL_FUNC) &_nap_readfilevector, 2},
     {"_nap_BMsimulate", (DL_FUNC) &_nap_BMsimulate, 1},
+    {"_nap_BMwrite012", (DL_FUNC) &_nap_BMwrite012, 2},
+    {"_nap_BMwritePED", (DL_FUNC) &_nap_BMwritePED, 2},
     {"_nap_BMsubset", (DL_FUNC) &_nap_BMsubset, 3},
     {"_nap_upperTmat", (DL_FUNC) &_nap_upperTmat, 1},
     {"_nap_Xmcenter", (DL_FUNC) &_nap_Xmcenter, 1},
@@ -507,7 +626,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nap_LDrelative", (DL_FUNC) &_nap_LDrelative, 3},
     {"_nap_modeC", (DL_FUNC) &_nap_modeC, 1},
     {"_nap_modeCmat", (DL_FUNC) &_nap_modeCmat, 1},
+    {"_nap_accuracies", (DL_FUNC) &_nap_accuracies, 2},
     {"_nap_My", (DL_FUNC) &_nap_My, 2},
+    {"_nap_BMs", (DL_FUNC) &_nap_BMs, 5},
     {"_nap_BMmgwa", (DL_FUNC) &_nap_BMmgwa, 3},
     {"_nap_BMcgwa", (DL_FUNC) &_nap_BMcgwa, 2},
     {"_nap_BMridge", (DL_FUNC) &_nap_BMridge, 3},
@@ -521,11 +642,16 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nap_ePRIOR", (DL_FUNC) &_nap_ePRIOR, 3},
     {"_nap_uPRIOR", (DL_FUNC) &_nap_uPRIOR, 8},
     {"_nap_LLGaussMix", (DL_FUNC) &_nap_LLGaussMix, 4},
-    {"_nap_LIKELIHOOD", (DL_FUNC) &_nap_LIKELIHOOD, 10},
-    {"_nap_wC", (DL_FUNC) &_nap_wC, 6},
-    {"_nap_wCBM", (DL_FUNC) &_nap_wCBM, 8},
+    {"_nap_LIKELIHOOD", (DL_FUNC) &_nap_LIKELIHOOD, 11},
+    {"_nap_wC", (DL_FUNC) &_nap_wC, 5},
+    {"_nap_wCBM", (DL_FUNC) &_nap_wCBM, 7},
+    {"_nap_wCBM2", (DL_FUNC) &_nap_wCBM2, 7},
+    {"_nap_wCBMupdate", (DL_FUNC) &_nap_wCBMupdate, 8},
+    {"_nap_wCBMupdateforR", (DL_FUNC) &_nap_wCBMupdateforR, 8},
+    {"_nap_sampleWC", (DL_FUNC) &_nap_sampleWC, 5},
+    {"_nap_ssaveC", (DL_FUNC) &_nap_ssaveC, 2},
+    {"_nap_ssimC", (DL_FUNC) &_nap_ssimC, 2},
     {"_nap_napMCMC", (DL_FUNC) &_nap_napMCMC, 41},
-    {"_nap_test_napMCMC", (DL_FUNC) &_nap_test_napMCMC, 41},
     {"_nap_rowSumsC", (DL_FUNC) &_nap_rowSumsC, 1},
     {"_nap_allelesimCvec", (DL_FUNC) &_nap_allelesimCvec, 12},
     {"_nap_allelesimCmat", (DL_FUNC) &_nap_allelesimCmat, 13},
