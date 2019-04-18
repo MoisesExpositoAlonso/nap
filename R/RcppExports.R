@@ -41,12 +41,12 @@ LDrelative <- function(A, mycols, debug = FALSE) {
     .Call('_nap_LDrelative', PACKAGE = 'nap', A, mycols, debug)
 }
 
-modeC <- function(ar) {
-    .Call('_nap_modeC', PACKAGE = 'nap', ar)
+medianC <- function(ar, burnin = 0.1) {
+    .Call('_nap_medianC', PACKAGE = 'nap', ar, burnin)
 }
 
-modeCmat <- function(ar) {
-    .Call('_nap_modeCmat', PACKAGE = 'nap', ar)
+medianCmat <- function(ar, burnin = 0.1) {
+    .Call('_nap_medianCmat', PACKAGE = 'nap', ar, burnin)
 }
 
 accuracies <- function(y, what) {
@@ -123,10 +123,6 @@ wC <- function(X, s, mode, epi = 1, verbose = FALSE) {
 
 wCBM <- function(A, s, mycols, myrows, mode, epi = 1, verbose = FALSE) {
     .Call('_nap_wCBM', PACKAGE = 'nap', A, s, mycols, myrows, mode, epi, verbose)
-}
-
-wCBM2 <- function(A, s, mycols, myrows, mode, epi = 1, verbose = FALSE) {
-    .Call('_nap_wCBM2', PACKAGE = 'nap', A, s, mycols, myrows, mode, epi, verbose)
 }
 
 wCBMupdate <- function(wnew, A, mycols, myrows, indecito, s0, s1, mode) {

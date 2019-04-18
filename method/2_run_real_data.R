@@ -4,7 +4,7 @@ library(dplyr)
 library(ggplot2)
 library(cowplot)
 library(latex2exp)
-
+library(data.table)
 library(coda)
 
 library(moiR)
@@ -12,6 +12,26 @@ load_all('.')
 library(Rcpp)
 
 
+####************************************************************************####
+#### reading genome ####
+g<-readplink(g012file = "databig/515g.012",
+          backingfile = "genomes",
+          backingpath = "databig/")
+
+
+## Bring the Arabidopsis fitness data
+
+
+
+
+
+
+
+
+
+
+## NEW AVOVE
+####************************************************************************####
 ###############################################################################
 ## Genomematrix
 ################################################################################

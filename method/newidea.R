@@ -1,4 +1,6 @@
-load_all('.')
+library(bigmemory)
+library(ggplot2)
+library('nap')
 
 ####************************************************************************####
 #### estimate marginal s
@@ -28,3 +30,23 @@ plot(y[y!=0] ,x= yinf[y!=0])
 qplot( y,
       wCBM(x@address,s,1:ncol(x),1:nrow(x), mode = 2)
        )
+
+
+####************************************************************************####
+####  where does reality lay in?
+
+g<-attach.big.matrix("databig/genomes.desc")
+Y<-readRDS(file = "data/Y.rds")
+y=Y$rFitness
+
+
+s<- BMs(g@address,y,1:ncol(g),1:nrow(g))
+hist(s)
+
+w<-wCBM(g@address,s,1:ncol(g),1:nrow(g), mode = 1)
+qplot(y,
+      w
+      )
+
+s
+w

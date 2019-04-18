@@ -43,10 +43,11 @@ load_all('.')
 ```{r}
 # Rcpp::sourceCpp('../MCMC.cpp')
 
-svar=0.05
-a=0.0
+svar=0.5
+a=0.01
 b=0.1
 p=0
+
 replicates=5
 n=500
 m=2
@@ -77,6 +78,27 @@ y=sampleW(Ey,a,b,p,rep = replicates)
 h=sort(rep.int(1:n,replicates))
 
 qplot(y=y,x=Ey[h]) + labs(title="Simulated true fitness vs fitness with sampling variance")
+
+```
+
+Comparison additive vs multiplicative
+```{r}
+qplot(x=Ey1,y=Ey3) + labs(ylab=paste("Inverse multiplicative",epi), xlab="No epistasis")
+qplot(x=Ey1,y=Ey2) + labs(ylab=paste("Multiplicative",epi), xlab="No epistasis")
+qplot(x=Ey3,y=Ey2) + labs(ylab=paste("Multiplicative",epi), xlab="Inverse multiplicative")
+
+```
+
+
+Same parameters but epistasis. It is more pronounced with stronger selection
+```{r}
+# Rcpp::sourceCpp('../MCMC.cpp')
+
+
+
+qplot(x=Ey,y=wsim(X,s,mode=1,epi=0.6)) + labs(ylab=paste("Global antagonistic epistasis",epi), xlab="No epistasis")
+qplot(x=Ey,y=wsim(X,s,mode=1,epi=1.4)) + labs(ylab=paste("Global synergistic epistasis",epi), xlab="No epistasis")
+
 
 ```
 

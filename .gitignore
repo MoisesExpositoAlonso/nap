@@ -12,3 +12,7 @@ src/*.so
 src/*.dll
 
 databig/
+output
+.DS_Store
+
+realoutput/

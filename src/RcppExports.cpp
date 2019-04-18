@@ -126,25 +126,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// modeC
-double modeC(const arma::vec& ar);
-RcppExport SEXP _nap_modeC(SEXP arSEXP) {
+// medianC
+double medianC(const arma::vec& ar, double burnin);
+RcppExport SEXP _nap_medianC(SEXP arSEXP, SEXP burninSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::vec& >::type ar(arSEXP);
-    rcpp_result_gen = Rcpp::wrap(modeC(ar));
+    Rcpp::traits::input_parameter< double >::type burnin(burninSEXP);
+    rcpp_result_gen = Rcpp::wrap(medianC(ar, burnin));
     return rcpp_result_gen;
 END_RCPP
 }
-// modeCmat
-arma::vec modeCmat(const arma::mat& ar);
-RcppExport SEXP _nap_modeCmat(SEXP arSEXP) {
+// medianCmat
+arma::vec medianCmat(const arma::mat& ar, double burnin);
+RcppExport SEXP _nap_medianCmat(SEXP arSEXP, SEXP burninSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type ar(arSEXP);
-    rcpp_result_gen = Rcpp::wrap(modeCmat(ar));
+    Rcpp::traits::input_parameter< double >::type burnin(burninSEXP);
+    rcpp_result_gen = Rcpp::wrap(medianCmat(ar, burnin));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -414,23 +416,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// wCBM2
-arma::vec wCBM2(SEXP A, const arma::vec& s, const arma::uvec& mycols, const arma::uvec& myrows, const int& mode, double epi, bool verbose);
-RcppExport SEXP _nap_wCBM2(SEXP ASEXP, SEXP sSEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP modeSEXP, SEXP epiSEXP, SEXP verboseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type s(sSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
-    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
-    Rcpp::traits::input_parameter< double >::type epi(epiSEXP);
-    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(wCBM2(A, s, mycols, myrows, mode, epi, verbose));
-    return rcpp_result_gen;
-END_RCPP
-}
 // wCBMupdate
 void wCBMupdate(arma::vec wnew, SEXP A, const arma::uvec& mycols, const arma::uvec& myrows, const int& indecito, const double& s0, const double& s1, const int& mode);
 RcppExport SEXP _nap_wCBMupdate(SEXP wnewSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP indecitoSEXP, SEXP s0SEXP, SEXP s1SEXP, SEXP modeSEXP) {
@@ -624,8 +609,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nap_Xmcenter", (DL_FUNC) &_nap_Xmcenter, 1},
     {"_nap_Xmvcenter", (DL_FUNC) &_nap_Xmvcenter, 1},
     {"_nap_LDrelative", (DL_FUNC) &_nap_LDrelative, 3},
-    {"_nap_modeC", (DL_FUNC) &_nap_modeC, 1},
-    {"_nap_modeCmat", (DL_FUNC) &_nap_modeCmat, 1},
+    {"_nap_medianC", (DL_FUNC) &_nap_medianC, 2},
+    {"_nap_medianCmat", (DL_FUNC) &_nap_medianCmat, 2},
     {"_nap_accuracies", (DL_FUNC) &_nap_accuracies, 2},
     {"_nap_My", (DL_FUNC) &_nap_My, 2},
     {"_nap_BMs", (DL_FUNC) &_nap_BMs, 5},
@@ -645,7 +630,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nap_LIKELIHOOD", (DL_FUNC) &_nap_LIKELIHOOD, 11},
     {"_nap_wC", (DL_FUNC) &_nap_wC, 5},
     {"_nap_wCBM", (DL_FUNC) &_nap_wCBM, 7},
-    {"_nap_wCBM2", (DL_FUNC) &_nap_wCBM2, 7},
     {"_nap_wCBMupdate", (DL_FUNC) &_nap_wCBMupdate, 8},
     {"_nap_wCBMupdateforR", (DL_FUNC) &_nap_wCBMupdateforR, 8},
     {"_nap_sampleWC", (DL_FUNC) &_nap_sampleWC, 5},

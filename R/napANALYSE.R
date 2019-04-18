@@ -38,7 +38,7 @@ iaccuracy<-function(y,h,inf){
 
 
 
-scorplot <-function(s,sinf,sinf_range=NULL){
+resscorplot <-function(s,sinf,sinf_range=NULL){
 
     ## Bias and accuracy at the selsection level
     lmobj<-summary(lm(s~sinf))
@@ -109,19 +109,20 @@ shist <- function(parchain){
 }
 
 
-indplot<-function(y,h,inf){
+indplot<-function(y,inf,h=NULL){
+  if(is.null(h)) h=1:length(y)
   ## Prepare data
-  toplot<-data.frame(y=y, x=inf[h])
+  toplot<-data.frame(y=inf[h], x=y)
 
   ## Bias and accuracy at the individual level
   lmobj2<-summary(lm(toplot$y~toplot$x))
-  accuracy2<-lmobj2$r.squared %>% round(.,digits=3)
+  R2<-lmobj2$r.squared %>% round(.,digits=3)
 
   if(dim(lmobj2$coefficients)[1] ==1){
-    bias2<-"na"
+    a<-"na"
   }else{
-    bias2<-coefficients(lmobj2)[2,1]  %>% round(.,digits=3)
-    bias3<-coefficients(lmobj2)[2,2]  %>% round(.,digits=3)
+    a<-coefficients(lmobj2)[1,1]  %>% round(.,digits=3)
+    b<-coefficients(lmobj2)[2,1]  %>% round(.,digits=3)
   }
 
   pind<-ggplot(data=toplot,aes(y=y,x=x)) +
@@ -130,12 +131,13 @@ indplot<-function(y,h,inf){
                 method="glm",lty="dashed",col="black")+
           ylim(range(c(toplot$x,toplot$y))) +
           xlim(range(c(toplot$x,toplot$y)))+
-          xlab("Inferred individual fitness")+
-          ylab("True individual fitness")+
+          ylab("Inferred individual fitness")+
+          xlab("True individual fitness")+
       geom_abline(intercept = 0,slope = 1,lty="dotted")+
       geom_hline(yintercept = 0,lty="dotted")+
       geom_vline(xintercept = 0,lty="dotted")+
-      ggtitle(TeX(paste("$R^2$ = ",accuracy2, ", $\\beta = $",bias2,", $\\a = $",bias3 )))
+      ggtitle(TeX(paste("$R^2$ = ",R2, ", $\\beta = $",b,", $\\a = $",a )))
+    return(list(pind=pind,accuracy=R2,a=a,b=b, rho=cor(toplot$y,toplot$x,method="spearman")))
 }
 
 # iplotreal<-function(true, inf){

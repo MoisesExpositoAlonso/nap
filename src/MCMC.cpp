@@ -265,17 +265,18 @@ arma::mat LDrelative(arma::mat X, bool debug = false){
 // [[Rcpp::export]]
 double medianC(const arma::vec& ar, double burnin=0.1){
   arma::vec tosub;
-  tosub = arma::linspace((int)round(ar.n_elem * burnin), ar.n_elem);
-  uvec indices = conv_to<uvec>::from(tosub);
+  tosub = arma::linspace((int)round(ar.n_elem * burnin), ar.n_elem-1);
+  arma::uvec indices = arma::conv_to<arma::uvec>::from(tosub);
   return(arma::median(ar.elem( indices)));
 }
 
 // [[Rcpp::export]]
 arma::vec medianCmat(const arma::mat& ar,double burnin=0.1){
+  if(ar.n_cols<10) burnin=0;
   arma::vec res(ar.n_rows);
   res.fill(0.0);
   for(int i=0; i<ar.n_rows; i++){
-    double tmp=medianC(ar.row(i),burnin);
+    double tmp=medianC(arma::trans(ar.row(i)),burnin);
     res(i) = tmp;
   }
   return(res);
@@ -290,14 +291,16 @@ List accuracies (const arma::vec & y,
                          const arma::vec & what){
   arma::mat xs(what.n_elem, 2);
   xs.fill(1);
-  xs.col(1)=what;
-  arma::colvec coef = arma::solve(xs, y);
+  xs.col(1)=y;
+  arma::colvec coef = arma::solve(xs, what);
   double R2= 1- (sum(pow(y-xs*coef,2))/
                  sum(pow(y-arma::mean(y),2))
                  );
   return List::create(Named("a") = coef(0),
                       Named("b")=coef(1),
-                      Named("R2")=R2
+                      Named("R2")=R2,
+                      Named("r2")=arma::cor(y,what),
+                      Named("rho")=arma::cor(arma::rank(y),arma::rank(what))
                       );
 }
 
@@ -810,29 +813,7 @@ arma::vec wCBM(SEXP A,
   return(pow(w,epi));
 }
 
-// [[Rcpp::export]]
-arma::vec wCBM2(SEXP A,
-                   const arma::vec & s,
-                   const arma::uvec & mycols,
-                   const arma::uvec & myrows,
-                   const int & mode,
-                   double epi=1,
-                   bool verbose=false){
 
-  Rcpp::XPtr<BigMatrix> bigMat(A);
-  MatrixAccessor<double> macc(*bigMat);
-  arma::vec w(bigMat->nrow()); // w= new arma::vec(X.n_rows)
-  w.fill(1); // need to fill otherwise unstable floats
-  double val=0;
-  int i, j;
-  for (j = 0; j <bigMat->ncol(); j++) {
-    for (i = 0; i < bigMat->nrow(); i++) {
-      val= (macc[j][i] );
-      wupdate(w(i),s(j), val, mode );
-    }
-  }
-  return(pow(w,epi));
-}
 
 // [[Rcpp::export]]
 void wCBMupdate(arma::vec wnew,
@@ -1236,7 +1217,7 @@ class NAP{
               minhere=par_chain(randomIndex,iter)- (bw *(epimax-epimin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(epimax-epimin));
               newval= runif_reflect(minhere,maxhere,epimin,epimax); break;
-              if(newval<0) newval=0;
+              if(newval<0) newval=1; // CHECK BUG
             case 5:
               minhere=par_chain(randomIndex,iter)- (bw *(svarmax-svarmin)) ;
               maxhere=par_chain(randomIndex,iter)+ (bw *(svarmax-svarmin));
@@ -1341,7 +1322,8 @@ class NAP{
   void decide(){
     // Ratio of probs
     double Paccept= exp( prob_chain(iter) - prob_chain(iter-1));
-    bool accept = Rcpp::runif(1)(0)<Paccept;
+    if(Paccept>1) Paccept=1;
+    bool accept = Rcpp::runif(1)(0)<=Paccept;
     if(verbose) cout<< "Pt-1 " << prob_chain(iter-1) <<endl;
     if(verbose) cout<< "Pt " << prob_chain(iter) <<endl;
     if(verbose) cout<< "Accept proposal " << accept <<endl;
@@ -1360,19 +1342,29 @@ class NAP{
   }
     ////////////////////
   List report(){
+    if(verbose) cout << "Summarizing the chain for report" << endl;
     // Summarize chain
     arma::vec shat=medianCmat(s_chain);
     arma::vec par=medianCmat(par_chain);
+    if(verbose) cout << "Calculating final individualfitness" << endl;
     arma::vec what=wCBM(A,shat,mycols,myrows,FITmode);
     // Calculate pseudo-p
-
+    if(verbose) cout << "Calculating pseudo-P-value" << endl;
+    // arma::vec pp=;
+    // Calculate ranges parameters
+    // arma::vec par_up =
+    // arma::vec par_low =
     // Calculate accuracies
+    if(verbose) cout << "Calculating prediction accuracy" << endl;
     List res=accuracies(y,what);
 
     return List::create(Named("chain") = s_chain.t(),
                         Named("shat")=shat,
+                        // Named("pp")=pp,
                         Named("parchain") = par_chain.t(),
                         Named("par")=par,
+                        Named("par_up")=par,
+                        Named("par_low")=par,
                         Named("w")=what,
                         Named("accuracy")=res,
                         Named("posterior") = prob_chain,
@@ -1419,29 +1411,36 @@ class NAP{
     void MAIN(){
     ///////////////////////////////////////////////////////////////////////////
     cout << "----------------------------------------------------------"<< endl;
+    cout << "----------------------------------------------------------"<< endl;
 
       int iter=0;
       cout<< endl;
       cout<< "# individual's observations = "<<  y.n_elem <<endl;
       cout<< "# of SNPs = "<<  s.n_elem <<endl;
       cout<< "# iterations = "<< iterations <<endl;
-      cout<< "TEST  = "<< (bool)test <<endl;
+      cout<< "Prior mode  = "<< PRImode <<endl;
+      cout<< "Likelihood mode  = "<<  LIKmode <<endl;
+      cout<< "S sampling mode  = "<< Smode <<endl;
+      cout<< "Fitness mode  = "<< FITmode <<endl;
       cout<< "Verbose = "<< (bool)verbose <<endl;
-      cout<< "Initializing & start chrono ... "<<endl;
+      cout<< "Initializing & running MCMC ... "<<endl;
       std::chrono::time_point<std::chrono::system_clock> start, end; // start chronometer values
       start = std::chrono::system_clock::now();
       cout<< endl;
 
     /// Start NAP & handle -INF probability
     ///////////////////////////////////////////////////////////////////////////
-    Gstart();
-    Sstartdif();
+    // Gstart();
+    // Sstartdif();
     FITstart();
     PROBstart();
+
+    //// Uncomment to stop if not right start
     // if(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
     //   stop("Attempted initializing but Probabiligy is -Inf !!! ... tune starting parameters!");
     // }
 
+    //// Uncomment if trying to find a good start
    int attemptcounter=0;
    int maxattempts=1000;
    while(std::isinf(prob_chain(0)) ||std::isnan(prob_chain(0))){
@@ -1508,6 +1507,7 @@ class NAP{
     cout<< "Acceptance ratio = "<< sum(ok_chain) / iterations << endl;
     cout<< "Final prior = "<< pri_chain(iterations) << endl;
     cout<< "Final likelihood = "<< lik_chain(iterations) << endl;
+    cout<< "Starting posterior = "<< prob_chain(0) << endl;
     cout<< "Final posterior = "<< prob_chain(iterations) << endl;
     end = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds1 = end-start;
@@ -1532,13 +1532,13 @@ List napMCMC(
             double a=0.1,double amin=0,double amax=1,
             double p=0.1, double pmin=0,double pmax=1,
             double mu=1,double mumin=1, double mumax=1,
-            double epi=1,double epimin=1, double epimax=1,
+            double epi=1,double epimin=0.9, double epimax=1.1,
             double svar=0.1,double svarmin=0.001, double svarmax=0.5,
             double ss=0,double ssmin=0, double ssmax=0.0,
             double smin=-0.98039215686274505668, double smax=10,
             int iterations=1e4,
             double burnin=0.1,
-            int Smode=2,int LIKmode=2, int PRImode=2, int FITmode=2,
+            int Smode=1,int LIKmode=2, int PRImode=1, int FITmode=2,
             bool verbose=false,
             bool test=false,
             double updateratio= -9.0,
@@ -1562,27 +1562,28 @@ List napMCMC(
   nap1.MAIN();
   List coldreport = nap1.report();
 
-  // cout << "HOT MCMC CHAIN" << endl;
-  // NAP nap2(y,h,A,mycols,myrows, s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
-  //         svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
-  //         iterations,burnin,
-  //         Smode,LIKmode,PRImode, FITmode,
-  //         verbose, test,
-  //         updateratio, bw*10
-  //         );
-  // nap2.MAIN();
-  // List hotreport = nap2.report();
-  //
-  // cout << "CHAINS END" << endl;
-  //
-  // if( (double)coldreport["final_likelihood"] > (double)hotreport["final_likelihood"] ){
-  //   cout << "KEEPING COLD CHAIN" << endl;
-  //   return(coldreport);
-  // }else{
-  //   cout << "KEEPING HOT CHAIN" << endl;
-  //   return(hotreport);
-  // }
-  return(coldreport);
+  cout << "HOT MCMC CHAIN" << endl;
+  NAP nap2(y,h,A,mycols,myrows, s,b,bmin,bmax,a,amin,amax,p,pmin,pmax,mu,mumin,mumax,epi,epimin, epimax,
+          svar,svarmin, svarmax,ss,ssmin, ssmax,smin, smax,
+          iterations,burnin,
+          Smode,LIKmode,PRImode, FITmode,
+          verbose, test,
+          updateratio, bw*10
+          );
+  nap2.MAIN();
+  List hotreport = nap2.report();
+
+  cout << "CHAINS END" << endl;
+
+  if( (double)coldreport["final_likelihood"] > (double)hotreport["final_likelihood"] ){
+    cout << "KEEPING COLD CHAIN" << endl;
+    return(coldreport);
+  }else{
+    cout << "KEEPING HOT CHAIN" << endl;
+    return(hotreport);
+  }
+
+  // return(coldreport);
 
 }
 

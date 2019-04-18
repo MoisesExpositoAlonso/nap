@@ -18,7 +18,7 @@ load_all('.')
 ####************************************************************************####
 #### Genomematrix and fam #####
 
-x<-attach.big.matrix("databig/example.desc")
+# not necessary # x<-attach.big.matrix("databig/example.desc")
 fam<-read.table("databig/example.fam",header=T)
 y=fam[,6]
 colnames(fam)[6]
@@ -29,4 +29,18 @@ run_gemma(plinkbase = "example",
           plinkfolder = paste0("databig/",colnames(fam)[6]),
           out = colnames(fam)[6],type = "bslmm",
           dryrun = F)
+
+
+####************************************************************************####
+#### RUN ALL
+
+for(i in 7:ncol(fam)){
+
+run_gemma(plinkbase = "example",
+          plinkfolder = paste0("databig/",colnames(fam)[i]),
+          out = colnames(fam)[i],type = "bslmm",
+          dryrun = F)
+
+
+}
 

@@ -176,6 +176,7 @@ List lmC(const arma::vec & y, const arma::mat & X) {
                        Named("stderr")       = stderrest);
 }
 
+
 // [[Rcpp::export]]
 arma::colvec BMcgwa(const SEXP A,const arma::vec & y, const arma::uvec & vars) {
 	// Read pointer
@@ -235,6 +236,7 @@ arma::colvec BMmgwa(const SEXP A,
 
  return(coef);
 }
+
 
 arma::colvec BMmgwa(const SEXP A,
                     const arma::colvec & y,
