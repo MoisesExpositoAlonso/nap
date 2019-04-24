@@ -1,0 +1,10 @@
+
+# Visualization
+
+Show the progress of the population as:
+* Distribution of minor allele frequencies over time
+* Distribution of fitness values per genotype with the average
+* Distribution of selection coefficients
+* Distribution of linkage disequilibrium
+
+Transformation from relative to absolute should be

@@ -1,5 +1,12 @@
+## Load packages
+library(devtools)
+library(dplyr)
+library(ggplot2)
+library(cowplot)
+library(latex2exp)
 
-devtools::load_all('.')
+library(moiR)
+load_all('.')
 
 ################################################################################
 ##### Hamming distances between acessions
@@ -24,7 +31,7 @@ table(is.na(Ymean))
 # dim(as.matrix(Ydist))
 # Ydist[1:5,1:5]
 data('dry')
-data('fam')
+data('fam')n
 head(fam)
 Y<-merge(fam, dry, by='id',all.x=T)
 dim(Y)

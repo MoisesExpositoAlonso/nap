@@ -12,22 +12,6 @@ load_all('.')
 library(Rcpp)
 
 
-####************************************************************************####
-#### reading genome ####
-g<-readplink(g012file = "databig/515g.012",
-          backingfile = "genomes",
-          backingpath = "databig/")
-
-
-## Bring the Arabidopsis fitness data
-
-
-
-
-
-
-
-
 
 
 ## NEW AVOVE
@@ -41,7 +25,6 @@ library(bigmemory)
 
 genomes<-readRDS('../gws/databig/genome.rda')
 # G <- attachgenomes(genomes)
-#
 # # Gi<-bigmemory::attach.big.matrix('databig/gi.desc')
 # # Gm<-bigmemory::attach.big.matrix('databig/gm.desc')
 # Go<-bigmemory::attach.big.matrix('databig/go.desc')

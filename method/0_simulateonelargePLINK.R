@@ -71,7 +71,7 @@ d<-matrix(ncol=nrow(mysim),nrow=length(inds) ) %>% data.frame
 i=1
 for( i in 1:nrow(mysim)){
   l=mysim[i,]
-  s = ssimC(length(totsnps),fn(l["svar"]));
+  s = ssimC(1:length(totsnps),fn(l["svar"]));
   # all(wC(x[],s,1,1,1) == wCBM(x@address,s,1:totsnps-1,1:totinds-1,1,1,1))
   w=wCBM(x@address,s,1:totsnps,1:totinds,
          mode=fn(l["mod"]),

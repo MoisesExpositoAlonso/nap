@@ -1,18 +1,25 @@
-<<<<<<< HEAD
-*/*.o
-*/*.so
-.Rhistory
-
-.Rproj.user
-
-.RData
-.Ruserdata
 src/*.o
 src/*.so
 src/*.dll
+*/*.o
+*/*.so
+
+.Rhistory
+.Rproj.user
+.RData
+.Ruserdata
+
 
 databig/
 output
+
 .DS_Store
+*.DS_Store*
+*/.DS_Store*
 
 realoutput/
+R/RcppExports.R
+test.R
+tests.cpp
+figs/*
+method-old
