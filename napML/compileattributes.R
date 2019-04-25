@@ -1,10 +1,2 @@
-#library(devtools)
-#library(roxygen2)
-#library(Rcpp)
-#document(".")
-#install(".")
-
-# I think roxygen2-based building generates Rcpp functions, therefore
+message("Compile Rcpp attributes")
 Rcpp::compileAttributes()
-
-# end then outside R CMD INSTALL --no-multiarch --with-keep.source .
