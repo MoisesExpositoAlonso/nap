@@ -16,15 +16,15 @@ load_all('.')
 library('argparser')
 cat("\n")
 p <- arg_parser("Run Non-Additive Polygenic ML model:")
-p <- add_argument(p, "--p", help="phenotype file name prefix of _.param.txt")
+p <- add_argument(p, "--p", help="path to .param.txt")
+p <- add_argument(p, "--f", help="path to .fam")
+p <- add_argument(p, "--g", help="path to .desc")
 p <- add_argument(p, "--l", help="number of SNPs to analyze", default=500)
-p <- add_argument(p, "--f", help="fraction of known effect SNPs", default=1)
+p <- add_argument(p, "--q", help="fraction of known effect SNPs", default=1)
 p <- add_argument(p, "--n", help="fraction of individuals to analyze", default=0.9)
 p <- add_argument(p, "--e", help="global epistasis power", default=1)
 p <- add_argument(p, "--m", help="fitness mode: 1 for additive, 2 for multiplicative", default=1)
-p <- add_argument(p, "--o", help="output folder", default="output")
 p <- add_argument(p, "--d", help="dry run?", default=FALSE)
-p <- add_argument(p, "--x", help="force run and override files?", default=FALSE)
 argv<-parse_args(p)
 
 if(argv$d){
@@ -32,35 +32,44 @@ if(argv$d){
   stop("User specified this is a dry run")
 }
 
-finalbase=paste0(argv$o,"/",argv$p,".results.",
+if(is.na(argv$p)){
+  argv$p<-"output/b0.01_a0.01_p0_svar0.1_epi1.1_mod2_h21.param.txt"
+  argv$f<-"databig/b0.01_a0.01_p0_svar0.1_epi1.1_mod2_h21/example.fam"
+  argv$g<-"databig/example.desc"
+}
+
+
+bname<-basename(argv$p)
+dname<-gsub(x=argv$p,pattern = bname,replacement = "")
+bname<-gsub(x=bname,pattern=".param.txt",replacement="")
+
+finalbase=paste0(dname,"/",bname,".results.",
             ifelse(argv$m==1,"a.","m."),
             paste0("e",argv$e),
-            ifelse(argv$f==1,paste0("all",argv$l),paste0("frac",argv$f,"-",argv$l))
+            ifelse(argv$q==1,paste0("all",argv$l),paste0("frac",argv$q,"-",argv$l))
           )
-finalfile<paste0(finalbase,".tsv")
-finallog<paste0(finalbase,".log")
-finalrda<paste0(finalbase,".rda")
+finalfile<-paste0(finalbase,".tsv")
+finallog<-paste0(finalbase,".log")
+finalrda<-paste0(finalbase,".rda")
 
-if(all(file.exists(paste0(argv$o,"/",c(finalfile,finallog,finalrda)) ))){
-  stop("Result files already exist, want to override? use --x TRUE")
+if(all(file.exists(c(finalfile,finallog,finalrda)) )){
+  stop("Result files already exist, want to override?")
 }
 
 ####************************************************************************####
 #### Data #####
 message("Loading data and defining starting conditions")
 # Read genome
-G<-attach.big.matrix("databig/example.desc")
+G<-attach.big.matrix(argv$g)
 
 # Read phenotyes
-fam<-read.table("databig/simexample.fam",header=T)
-pheno<-colnames(fam)[6]
-pheno<-argv$p
-y<-fam[,pheno]
+y<-read.table(argv$f)[,6]
 
 # Read run BSLMM
-gammas<-.read_gemma(folder=argv$o,name=pheno, what = "bslmm")
+gammas<-.read_gemma(folder=dname,name=bname, what = "bslmm")
 bslmm<-rep(0,ncol(G))
 bslmm[gammas$pos]<-gammas$effect
+
 
 # Define training set of individuals
 h=sample(1:nrow(G),size = round(argv$n *nrow(G)),replace = F) %>% sort
@@ -69,13 +78,11 @@ ytrain<-y[h]
 ytest<-y[-h]
 
 # Define SNPs to analyse
-## the first 500 are effect SNPs, the rest 9500 are neutral
-totsnps=argv$l
-if(argv$f < 1){ # trick to start -500
-  frac<-round((1-argv$f)*500)
-  m=(frac:(frac+totsnps))
+if(argv$q < 1){ # trick to start -500
+  frac<-round((1-argv$q)*500)
+  m=(frac:(frac+argv$l))
 }else{
-  m=(1:totsnps)
+  m=(1:argv$l)
 }
 
 # Propose starting point of selection coefficients based on BSLMM
@@ -100,7 +107,8 @@ r<-napML(y = ytrain,
         slow=s-s_range,
         shigh=s+s_range)
 end_time <- Sys.time()
-end_time - start_time
+timeittook<-end_time - start_time
+
 
 #### Get inferences
 sinf<-r$par[1:length(s)]
@@ -128,30 +136,7 @@ resu<-rbind(
 )
 write.tsv(file=finalfile,resu  )
 sink(file=finallog)
-  cat(r$value)
-  cat("\n")
+  cat(r$value);cat("\n")
+  cat(timeittook);cat("\n")
   r$par[-c(1:length(s))]
 sink()
-
-
-
-# ####
-# plotresults<-plot_grid(labels=c("ML","BSLMM"),ncol=1,
-#         indplot(y,wCBM(A = G@address,s=r$par[1:totsnps],
-#                         mycols=1:totsnps,myrows=1:nrow(G), mode=1))$pind  ,
-#
-#         indplot(y,wCBM(A = G@address,s=gammas$effect,
-#                         mycols=1:totsnps,myrows=1:nrow(G), mode=1))$pind
-#         )
-# save_plot(paste0("figs/",pheno,"_indplot.pdf"),
-#           plotresults,base_height = 2*5,base_width = 5)
-#
-# plotresults2<-plot_grid(labels=c("ML","BSLMM"), ncol=1,
-#                         scorplot(ssimC(totsnps,svar=0.01),
-#                                  r$par[1:totsnps])$psel         ,
-#                         scorplot(ssimC(totsnps,svar=0.01),
-#                                  bslmm[1:totsnps])$psel
-#               )
-# save_plot(paste0("figs/",pheno,"_splot.pdf"),
-#           plotresults2,base_height = 2*5,base_width = 5)
-#
