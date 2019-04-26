@@ -16,31 +16,35 @@ library(moiR)
 load_all('.')
 
 ####************************************************************************####
-#### Genomematrix and fam #####
+#### fam random marix#####
+fam<-read.table("../databig/simexample.fam",header=T)
 
-# not necessary # x<-attach.big.matrix("databig/example.desc")
-fam<-read.table("databig/example.fam",header=T)
-y=fam[,6]
-colnames(fam)[6]
+mysub<-sample(10,7:ncol(fam))
 
-####************************************************************************####
-
-run_gemma(plinkbase = "example",
-          plinkfolder = paste0("databig/",colnames(fam)[6]),
-          out = colnames(fam)[6],type = "bslmm",
-          dryrun = F)
-
-
-####************************************************************************####
-#### RUN ALL
-
-for(i in 7:ncol(fam)){
-
-run_gemma(plinkbase = "example",
-          plinkfolder = paste0("databig/",colnames(fam)[i]),
-          out = colnames(fam)[i],type = "bslmm",
-          dryrun = F)
-
-
+for(i in mysub){
+  plinkfolder<-paste0("../databig/",colnames(fam)[i])
+  if(!file.exists(paste0(plinkfolder,".param.txt"))){
+    run_gemma(plinkbase = "example",
+              plinkfolder = plinkfolder,
+              out = colnames(fam)[i],
+              type = "bslmm",
+              dryrun = T)
+  }
 }
 
+####************************************************************************####
+#### fam LD random marix#####
+ldfam<-read.table("../databig/ldsimexample.fam",header=T)
+
+mysub<-sample(10,7:ncol(ldfam))
+
+for(i in mysub){
+  plinkfolder<-paste0("../databig/",colnames(ldfam)[i])
+  if(!file.exists(paste0(plinkfolder,".param.txt"))){
+    run_gemma(plinkbase = "example",
+              plinkfolder = plinkfolder,
+              out = colnames(ldfam)[i],
+              type = "bslmm",
+              dryrun = T)
+  }
+}
