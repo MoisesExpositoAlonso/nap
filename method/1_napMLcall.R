@@ -8,7 +8,7 @@ library(dplyr)
 library(bigmemory)
 library(Rcpp)
 library(moiR)
-load_all('.')
+load_all('napML')
 
 ####************************************************************************####
 ## Arguments

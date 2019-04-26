@@ -91,15 +91,3 @@ napML<-function(y,h,m,A,mod,e,s,slow=rep(-0.5,length(s)),shigh= rep(0.5,length(s
         method = "L-BFGS-B"
         )
 }
-
-#' Likelihood function
-#' @export
-LIKELIHOOD <- function(y, w, b, a, p, mu, epi, verbose = FALSE, printall = FALSE) {
-    .Call('_nap_LIKELIHOOD', PACKAGE = 'nap', y, w, b, a, p, mu, epi, verbose, printall)
-}
-
-#' Fitness function
-#' @export
-wCBM <- function(A, s, mycols, myrows, mode, epi = 1, verbose = FALSE) {
-    .Call('_nap_wCBM', PACKAGE = 'nap', A, s, mycols, myrows, mode, epi, verbose)
-}

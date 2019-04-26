@@ -12,7 +12,7 @@
 #' @export
 #'
 #' @examples
-XBMsimulate<-function(backingpath="databig",filename="example",n,m,force=F){
+XBMsimulate<-function(backingpath="../databig",filename="example",n,m,force=F){
   # Create a filebacked big matrix in R, and fill it
   # with 2s (homozygous for minor) at a MAF simulated from runif 0-0.5
   # To read matrix, attach.big.matrix("descriptionfile.desc")
@@ -30,8 +30,54 @@ XBMsimulate<-function(backingpath="databig",filename="example",n,m,force=F){
 }
 
 ## Need to also produce a Map and BIM files
+MAPwrite<-function(x,path="../databig/example"){
+  #### Write bim map
+  dmap<-data.frame(CHR=1,
+                   SNP=paste(sep="_",1,1:ncol(x)),
+                   X=0,
+                   POS=1:ncol(x),
+                   R="C",A="A")
+  write.table(row.names = F,col.names = F, quote = F,
+              file=paste0(path, ".map"),
+              dmap[,1:4] # the last columns are for a .bim file, but gets reconstructed based on map and ped using plink later
+              )
+  return(TRUE)
+}
 
-## Need to produce a 012, raw, and PED files
+#### write 012 PED
+RAW012write<-function(x,path="../databig/example"){
+  BMwrite012(x@address,paste0(path,".012")) # only needed for my own purposes
+  return(TRUE)
+}
+
+PEDwrite<-function(x,path="../databig/example"){
+  tmp1<-tempfile()
+  tmp2<-tempfile()
+  BMwritePED(x@address,tmp1)
+  write.table(row.names = F,col.names = F, quote = F,
+              file=tmp2,
+              data.frame(FID=1:nrow(x),IID=1:nrow(x),PAT=0,MAT=0,SEX=0,PHENO=-9)
+              )
+  system(paste("paste ", tmp2, tmp1," > ", paste0(path,".ped")))
+  return(TRUE)
+}
+#
+# PEDwrite<-function(x,path="../databig/example"){
+#   BMwritePED(x@address,paste0(path,".ped.tmp")) # to convert to bed
+#   dum<-data.frame(FID=1:nrow(x),IID=1:nrow(x),PAT=0,MAT=0,SEX=0,PHENO=-9)
+#   write.table(row.names = F,col.names = F, quote = F,
+#               file="tmp.fam",
+#               dum
+#               )
+#   system(paste("cut -d ' ' -f-6 tmp.fam > ", paste0(path,".ped.tmp2")) )
+#   system("paste ", paste0(path,".ped.tmp2"), paste0(path,".ped.tmp")," > ", paste0(path,".ped"))
+#   return(TRUE)
+# }
+
+BEDmake<-function(path="../databig/example"){
+  # system("plink -file databig/example --make-bed")
+  system(paste("plink --noweb --file ",path," --make-bed --out ",path) )
+}
 
 ####************************************************************************####
 

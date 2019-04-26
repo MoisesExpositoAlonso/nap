@@ -17,8 +17,8 @@
 #include <sstream>
 
 
-#define ARMA_64BIT_WORD 1
-//// https://stackoverflow.com/questions/40592054/large-matrices-in-rcpparmadillo-via-the-arma-64bit-word-define
+// #define ARMA_64BIT_WORD 1
+// //// https://stackoverflow.com/questions/40592054/large-matrices-in-rcpparmadillo-via-the-arma-64bit-word-define
 
 // when armadillo is loaded, remove this below
 //#include <Rcpp.h>
