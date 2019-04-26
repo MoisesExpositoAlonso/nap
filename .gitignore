@@ -3,6 +3,11 @@ src/*.so
 src/*.dll
 */*.o
 */*.so
+napML/src/*.o
+napML/src/*.so
+napML/src/.fuse*
+napML/src/.nfs*
+napML/src/symbols.rds
 
 .Rhistory
 .Rproj.user
@@ -19,7 +24,8 @@ output
 
 realoutput/
 R/RcppExports.R
+napML/R/RcppExports.R
 test.R
 tests.cpp
 figs/*
-method-old
+
