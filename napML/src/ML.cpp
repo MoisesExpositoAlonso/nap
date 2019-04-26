@@ -130,7 +130,9 @@ bool BMwritePED(SEXP A, std::string outfile){
         for (int j = 0; j <bigMat->ncol(); j++) {
           val= (macc[j][i]);
           if (val==0) myfile<< "C C" <<" ";
-          else myfile<< "A A" <<" ";
+          else if (val==1) myfile<< "C A" <<" ";
+          else if (val==2) myfile<< "A A" <<" ";
+          else myfile<< "N N" <<" ";
         }
         myfile<<"\n";
       }
@@ -593,7 +595,7 @@ bool ssaveC(arma::vec s, std::string path){
 arma::vec ssimC(arma::uvec snps,
                 double svar){
   arma::vec news;
-  news.load("databig/s_svar01.txt");
+  news.load("../databig/s_svar01.txt");
   news= exp( log(1+news) * (svar/0.01) )-1 ;
 
   arma::vec subnews(snps.n_elem,arma::fill::zeros);
