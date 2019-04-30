@@ -3,12 +3,17 @@
 ################################################################################
 message("Loading packages required for NAP")
 ## Load packages
-library(devtools)
-library(dplyr)
-library(bigmemory)
-library(Rcpp)
-library(moiR)
-load_all('napML')
+loadpackages<-function(){
+library(devtools);
+library(dplyr);
+library(bigmemory);
+library(Rcpp);
+library(moiR);
+}
+suppressWarnings( loadpackages() )
+devtools::load_all('napML')
+# sourceCpp("napML/src/ML.cpp")
+#library('nap')
 
 ####************************************************************************####
 ## Arguments
@@ -33,8 +38,8 @@ if(argv$d){
 }
 
 if(is.na(argv$p)){
-  argv$p<-"output/b0.01_a0.01_p0_svar0.1_epi1.1_mod2_h21.param.txt"
-  argv$f<-"databig/b0.01_a0.01_p0_svar0.1_epi1.1_mod2_h21/example.fam"
+  argv$p<-"output/b0.5_a0.5_p0.2_svar0.1_epi1.2_mod1_h20.74.param.txt"
+  argv$f<-"databig/b0.5_a0.5_p0.2_svar0.1_epi1.2_mod1_h20.74/example.fam"
   argv$g<-"databig/example.desc"
 }
 
@@ -52,10 +57,10 @@ finalfile<-paste0(finalbase,".tsv")
 finallog<-paste0(finalbase,".log")
 finalrda<-paste0(finalbase,".rda")
 
-if(all(file.exists(c(finalfile,finallog,finalrda)) )){
-  stop("Result files already exist, want to override?")
-}
-
+#if(all(file.exists(c(finalfile,finallog,finalrda)) )){
+#  stop("Result files already exist, want to override?")
+#}
+#
 ####************************************************************************####
 #### Data #####
 message("Loading data and defining starting conditions")
@@ -72,6 +77,7 @@ bslmm[gammas$pos]<-gammas$effect
 
 
 # Define training set of individuals
+hall<-1:nrow(G)
 h=sample(1:nrow(G),size = round(argv$n *nrow(G)),replace = F) %>% sort
 htest=(1:nrow(G))[-h]
 ytrain<-y[h]
@@ -88,17 +94,21 @@ if(argv$q < 1){ # trick to start -500
 # Propose starting point of selection coefficients based on BSLMM
 s<-rep(0,length(m))
 s<-bslmm[m]
-s[abs(s)>1]<- 0
-s[abs(s)< -1]<- 0
-s_range<-range(s) %>% diff
+# s[abs(s)>1]<- 0
+# s[abs(s)< -1]<- 0
+s_range<-sd(s)*3
 
 
 ####************************************************************************####
 #### Optimization ####
 message("Starting optimiztion")
 start_time <- Sys.time()
-r<-napML(y = ytrain,
-        h = h,
+Sys.time()
+r<-napML(
+        y = y,
+        h = hall,
+        # y = ytrain,
+        # h = htrain,
         m = m,
         A = G,
         mod=argv$m,
@@ -106,8 +116,10 @@ r<-napML(y = ytrain,
         s=s,
         slow=s-s_range,
         shigh=s+s_range)
+Sys.time()
 end_time <- Sys.time()
-timeittook<-end_time - start_time
+end_time - start_time
+r
 
 
 #### Get inferences
@@ -115,7 +127,20 @@ sinf<-r$par[1:length(s)]
 winf=wCBM(A = G@address,
                       s=sinf,
                       mycols=m, myrows= htest,
-                      mode=argv$m)
+                      mode=argv$m,
+                      epi=argv$e
+          )
+winftrain<-wCBM(A = G@address,
+                      s=sinf,
+                      mycols=m, myrows= h,
+                      mode=argv$m,
+                      epi=argv$e
+          )
+wgwatrain=wCBM(A = G@address,
+                      s=bslmm,
+                      mycols=1:ncol(G), myrows= h,
+                      mode=1)
+
 wgwa=wCBM(A = G@address,
                       s=bslmm,
                       mycols=1:ncol(G), myrows= htest,
@@ -123,20 +148,61 @@ wgwa=wCBM(A = G@address,
 realsvar<- ifelse(grepl("svar0.01", argv$p),0.01,0.1)
 sreal=ssimC(m,svar=realsvar)
 
-save(file = finalrda,list = list(r,winf,sfin))
+plot(sinf,sreal)
+plot(winftrain,ytrain)
+plot(winf,ytest)
+plot(wgwa,ytest)
+plot(wgwatrain,ytrain)
+
+saveRDS(file = finalrda,object = list(r,winf,sinf))
 
 ####************************************************************************####
 # Accuracies and write to file
 message("Writing results")
 resu<-rbind(
-  c("method"="nap_s",rbind(accuracies(sreal,sinf)) ),
-  c("method"="gwa_s",rbind(accuracies(sreal,bslmm[m])) ),
-  c("method"="nap_i",rbind(accuracies(ytest,winf)) ),
-  c("method"="gwa_s",rbind(accuracies(ytest, wgwa)) )
+  cbind("method"="nap_s",rbind(accuracies(sreal,sinf)) ),
+  cbind("method"="nap_i",rbind(accuracies(ytest,winf)) ),
+  cbind("method"="gwa_s",rbind(accuracies(sreal,bslmm[m])) ),
+  cbind("method"="gwa_i",rbind(accuracies(ytest, wgwa)) )
 )
+resu
 write.tsv(file=finalfile,resu  )
 sink(file=finallog)
   cat(r$value);cat("\n")
   cat(timeittook);cat("\n")
   r$par[-c(1:length(s))]
 sink()
+
+
+
+# ####************************************************************************####
+# ####************************************************************************####
+#### DEBUG ####
+par = unlist(list(
+                  # "s"=rep(0,length(s)),
+                  "s"=s,
+                  # "s"=sreal,
+                  "b"=1,
+                  "a"=1,
+                  "p"=0.5#,
+                  ))
+w=wCBM(A = G@address,
+          s=par[1:length(m)],
+          mycols =m,
+          myrows =h,
+          mode=argv$m,
+          epi=argv$e)
+hist(w)
+LIKELIHOOD(y = ytrain,
+            w = w,
+            b=par[length(m)+1],
+            a=par[length(m)+2],
+            p=par[length(m)+3],
+            mu=1,
+            epi=argv$e
+            )
+
+
+
+####************************************************************************####
+####************************************************************************####

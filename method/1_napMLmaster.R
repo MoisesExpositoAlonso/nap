@@ -1,14 +1,17 @@
 ################################################################################
-
-################################################################################
 ## Find BSLMM GEMMA runs and send napML runs
+pathdata<-"databig/"
+exname<-"example"
+pname<-list.files(path = "output/",pattern="param",full=T)
+pname<-pname[which(grepl("epi1.2",pname))]
+pname
 
-runs<-list.files(path = "output/",pattern="param")
-runs<-gsub(pattern = ".param.txt",replacement = "",runs)
-runs
+bname<-gsub(pattern = ".param.txt",replacement = "",basename(pname))
+fname<-paste0(pathdata,bname,"/",exname,".fam")
+gname<-paste0(pathdata,exname,".desc")
 
 ## Parameters
-es<-c(0.9,1,1.1)
+es<-c(0.8,1,1.2)
 mods<-c(1,2)
 snps<-c(500,2000,1000)
 frac<-c(1,1,0.75)
@@ -18,27 +21,35 @@ snpfrac<-list(c(snps[1],frac[1]),
                 )
 
 #### Send runs
-# background<-" "3*
+# background<-" "
 background<-" &"
 
 message("Calling NAP runs")
-for(file in runs[1:2]){
-  for(e in es){
-    for(mod in mods){
-      for(loci in snpfrac){
-      message("file", file)
-      message("mode", mod)
-      message("epistasis", e)
-      message(loci)
-    system(paste("nice -n 19 Rscript method/1_napMLcall.R",
-                 "--p", file,
+
+for(i in 1){
+  for(e in es[1]){
+    for(mod in mods[1]){
+      for(loci in snpfrac[1]){
+
+      message("par name: ", pname[i])
+      message("fam name: ", fname[i])
+      message("g name: ", gname[i])
+      message("mode: ", mod)
+      message("epistasis: ", e)
+      message("loci: ",loci)
+      command<-
+           paste("nice -n 19 Rscript method/1_napMLcall.R",
+                 "--p", pname[i],
+                 "--f", fname[i],
+                 "--g", gname[i],
                  "--e", e,
                  "--m", mod,
                  "--l", loci[1],
-                 "--f", loci[2],
+                 "--q", loci[2],
                   background
                  )
-           )
+      message("command: ",command)
+      system(command)
       }
     }
   }

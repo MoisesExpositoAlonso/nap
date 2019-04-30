@@ -21,7 +21,7 @@ lik.nap<-function(y,h,m,A,par,mod,e){
             mycols =m,
             myrows =h,
             mode=mod)
-  -LIKELIHOOD(y = y,
+  LL<- -LIKELIHOOD(y = y,
               w = w,
               b=par[length(m)+1],
               a=par[length(m)+2],
@@ -30,6 +30,7 @@ lik.nap<-function(y,h,m,A,par,mod,e){
               epi=e
               # epi=par[length(m)+4]
               )
+  return(LL)
 }
 
 #' napML call
@@ -51,9 +52,9 @@ lik.nap<-function(y,h,m,A,par,mod,e){
 napML<-function(y,h,m,A,mod,e,s,slow=rep(-0.5,length(s)),shigh= rep(0.5,length(s))){
   parstart<-list(
                   "s"=s,
-                  "b"=0.1,
-                  "a"=0.1,
-                  "p"=0.1#,
+                  "b"=1,
+                  "a"=1,
+                  "p"=0.5#,
                   # "mu"=1,
                   # "epi"=1
                   ) %>% unlist
@@ -73,7 +74,7 @@ napML<-function(y,h,m,A,mod,e,s,slow=rep(-0.5,length(s)),shigh= rep(0.5,length(s
                 "s"=shigh,
                 "b"=1,
                 "a"=1,
-                "p"=0.2#,
+                "p"=1#,
                 # "mu"=1.02,
                 # "epi"=1.2
                 ) %>% unlist
@@ -87,7 +88,25 @@ napML<-function(y,h,m,A,mod,e,s,slow=rep(-0.5,length(s)),shigh= rep(0.5,length(s
         par = parstart,
         lower = parlow,
         upper=parhigh,
-        control=list(pgtol=0,maxit=500,factr=1e8),
+        control=list(pgtol=0,
+                     maxit=500,
+                     factr=1e-12),
         method = "L-BFGS-B"
         )
 }
+
+
+# R implementation
+# llmix<-function(y, w, b,a, p){
+#   tmp<-ifelse(y==0,
+#               p  + (1-p) *  pnorm(0,w,a+w*b,TRUE,FALSE),
+#               (1-p) * dnorm(y,w,a+w*b,FALSE)
+#              )
+#   return(sum(log(tmp)))
+# }
+#
+# llmix(y = ytrain,
+#             w = w,
+#             b=par[length(m)+1],
+#             a=par[length(m)+2],
+#             p=par[length(m)+3])
