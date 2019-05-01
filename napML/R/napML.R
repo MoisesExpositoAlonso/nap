@@ -52,7 +52,7 @@ lik.nap<-function(y,h,m,A,par,mod,e){
 napML<-function(y,h,m,A,mod,e,s,slow=rep(-0.5,length(s)),shigh= rep(0.5,length(s))){
   parstart<-list(
                   "s"=s,
-                  "b"=1,
+                  "b"=0.5,
                   "a"=1,
                   "p"=0.5#,
                   # "mu"=1,
