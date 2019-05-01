@@ -126,7 +126,7 @@ r
 sinf<-r$par[1:length(s)]
 winf=wCBM(A = G@address,
                       s=sinf,
-                      mycols=m, myrows= htest,
+                      mycols=m, myrows= hall,
                       mode=argv$m,
                       epi=argv$e
           )
@@ -143,7 +143,7 @@ wgwatrain=wCBM(A = G@address,
 
 wgwa=wCBM(A = G@address,
                       s=bslmm,
-                      mycols=1:ncol(G), myrows= htest,
+                      mycols=1:ncol(G), myrows= hall,
                       mode=1)
 realsvar<- ifelse(grepl("svar0.01", argv$p),0.01,0.1)
 sreal=ssimC(m,svar=realsvar)
@@ -162,9 +162,10 @@ saveRDS(file = finalrda,object = list(r,winf,sinf))
 message("Writing results")
 resu<-rbind(
   cbind("method"="nap_s",rbind(accuracies(sreal,sinf)) ),
-  cbind("method"="nap_i",rbind(accuracies(ytest,winf)) ),
+  # cbind("method"="nap_i",rbind(accuracies(ytest,winf)) ),
+  cbind("method"="nap_i",rbind(accuracies(y,winf)) ),
   cbind("method"="gwa_s",rbind(accuracies(sreal,bslmm[m])) ),
-  cbind("method"="gwa_i",rbind(accuracies(ytest, wgwa)) )
+  cbind("method"="gwa_i",rbind(accuracies(y, wgwa)) )
 )
 resu
 write.tsv(file=finalfile,resu  )
