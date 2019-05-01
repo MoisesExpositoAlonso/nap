@@ -148,11 +148,12 @@ wgwa=wCBM(A = G@address,
 realsvar<- ifelse(grepl("svar0.01", argv$p),0.01,0.1)
 sreal=ssimC(m,svar=realsvar)
 
-plot(sinf,sreal)
-plot(winftrain,ytrain)
-plot(winf,ytest)
-plot(wgwa,ytest)
-plot(wgwatrain,ytrain)
+# plot(sinf,sreal)
+# plot(winftrain,ytest)
+# plot(winf,ytest)
+# plot(wgwa,ytest)
+# plot(s,sreal)
+# plot(wgwatrain,ytrain)
 
 saveRDS(file = finalrda,object = list(r,winf,sinf))
 
@@ -169,7 +170,7 @@ resu
 write.tsv(file=finalfile,resu  )
 sink(file=finallog)
   cat(r$value);cat("\n")
-  cat(timeittook);cat("\n")
+  cat(end_time-start_time);cat("\n")
   r$par[-c(1:length(s))]
 sink()
 
@@ -178,31 +179,29 @@ sink()
 # ####************************************************************************####
 # ####************************************************************************####
 #### DEBUG ####
-par = unlist(list(
-                  # "s"=rep(0,length(s)),
-                  "s"=s,
-                  # "s"=sreal,
-                  "b"=1,
-                  "a"=1,
-                  "p"=0.5#,
-                  ))
-w=wCBM(A = G@address,
-          s=par[1:length(m)],
-          mycols =m,
-          myrows =h,
-          mode=argv$m,
-          epi=argv$e)
-hist(w)
-LIKELIHOOD(y = ytrain,
-            w = w,
-            b=par[length(m)+1],
-            a=par[length(m)+2],
-            p=par[length(m)+3],
-            mu=1,
-            epi=argv$e
-            )
-
-
+# par = unlist(list(
+#                   # "s"=rep(0,length(s)),
+#                   "s"=s,
+#                   # "s"=sreal,
+#                   "b"=1,
+#                   "a"=1,
+#                   "p"=0.5#,
+#                   ))
+# w=wCBM(A = G@address,
+#           s=par[1:length(m)],
+#           mycols =m,
+#           myrows =h,
+#           mode=argv$m,
+#           epi=argv$e)
+# hist(w)
+# LIKELIHOOD(y = ytrain,
+#             w = w,
+#             b=par[length(m)+1],
+#             a=par[length(m)+2],
+#             p=par[length(m)+3],
+#             mu=1,
+#             epi=argv$e
+#             )
 
 ####************************************************************************####
 ####************************************************************************####
