@@ -1,15 +1,17 @@
 ###### R implementation
 likelihoodR<-function(y, w, b,a, p){
-  # mymin<-.Machine$double.xmin / (length(y)*10)
-  mymin<-.Machine$double.xmin
+  mymin<-.Machine$double.xmin / (length(y)*10)
+  # mymin<-.Machine$double.xmin
   logmymin<-log(mymin)
   tmp<-ifelse(y==0,
               p  + (1-p) *  pnorm(0,w,a+w*b,TRUE,FALSE),
               (1-p) * dnorm(y,w,a+w*b,FALSE)
              )
   tmp[is.infinite(tmp)]<-mymin
+  tmp[is.na(tmp)]<-mymin
   LL<-sum(log(tmp))
   if(is.infinite(LL)) LL<-logmymin
+  if(is.na(LL)) LL<-logmymin
   return(LL)
 }
 
@@ -34,7 +36,8 @@ lik.nap<-function(y,h_,m_,A,par,mod,e,debug=F){
             s=par[1:length(m)],
             mycols =m,
             myrows =h,
-            mode=mod)
+            mode=mod,
+            epi=e)
   LL<-likelihoodR(y = y,
             w = w,
             b=par[length(m)+1],

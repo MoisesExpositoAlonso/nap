@@ -15,6 +15,7 @@ devtools::load_all('napML')
 sourceCpp("napML/src/ML.cpp")
 source("napML/R/napML.R")
 
+setwd("~/nap")
 
 ####************************************************************************####
 ## Arguments
@@ -103,71 +104,20 @@ s_range<-diff(range(s))
 slow<-s-s_range
 shigh<-s+s_range
 
-####************************************************************************####
-# #### Optimization ####
-# start_time <- Sys.time()
-# print(paste("Starting optimiztion on", start_time))
-# w=wCBM(A = G@address,
-#           s=s,
-#           mycols =m,
-#           myrows =hall,
-#           mode=1,
-#           epi=1)
-# # plot(w,y)
-# likelihoodR(y = y,
-#             w = w,
-#             b=0.5,
-#             a=0.5,
-#             p=0)
-#
-# parstart<-list(
-#                 "s"=s,
-#                 "b"=0.5,
-#                 "a"=0.5,
-#                 "p"=0
-#                 ) %>% unlist
-# parlow<- list(
-#               "s"=slow,
-#               "b"=0.01,
-#               "a"=0.01,
-#               "p"=0
-#               ) %>% unlist
-# parhigh<- list(
-#               "s"=shigh,
-#               "b"=1,
-#               "a"=1,
-#               "p"=1
-#               )%>% unlist
-# myscale<-c( rep(median(abs(s)), length(s) ), rep(0.1,3))
-# r<-optimx(fn=lik.nap,
-#       y=y,
-#       h_=hall,
-#       m_=m,
-#       A=G,
-#       mod=argv$m,
-#       e=argv$e,
-#       par = parstart ,
-#       lower = parlow,
-#       upper=parhigh,
-#       control=list(
-#                   trace=1,
-#                   fnscale=myscale,
-#                   maxit=20
-#                       ),
-#       method = "spg"
-#       # method ="BFGS"
-#       # method = "L-BFGS-B"
-#       # method = "CG"
-#       )
-# r
-# end_time<-Sys.time()
-# message("Ending optimiztion ")
-# print(end_time - start_time)
+
 
 ####************************************************************************####
 #### Inference ####
+redo<-lm(y ~G[,m])
+redo$coefficients
+s<-redo$coefficients[-1]
+s[is.na(s)]<-0
+mycor<-cor(G[,m])
+table(mycor==1)
+
 w=wCBM(A = G@address,
           s=s,
+          # s=rep(0,length(m)),
           mycols =m,
           myrows =hall,
           mode=1,
@@ -175,39 +125,38 @@ w=wCBM(A = G@address,
 plot(w,y)
 likelihoodR(y = y,
             w = w,
-            b=0.01,
-            a=0.01,
+            b=0.5,
+            a=0.5,
             p=0) * (-1)
 lik.nap(y=y,
         h_=hall,
         m_=m,
         A=G,
-        par=c(s,0.01,0.01,0),
+        par=c(s,0.5,0.5,0),
         mod=1,
         e=1
         )
 
 parstart<-list(
                 "s"=s,
-                "b"=0.5,
-                "a"=0.5,
+                "b"=1,
+                "a"=1,
                 "p"=0
                 ) %>% unlist
 parlow<- list(
-              "s"=slow,
-              # "s"=rep(-0.5, length(s)),
+              # "s"=slow,
+              "s"=rep(-0.5, length(s)),
               "b"=0.01,
               "a"=0.01,
               "p"=0
               ) %>% unlist
 parhigh<- list(
-              "s"=shigh,
-              # "s"=rep(0.5, length(s)),
+              # "s"=shigh,
+              "s"=rep(0.5, length(s)),
               "b"=1,
               "a"=1,
               "p"=1
               )%>% unlist
-myscale<-c( rep(median(abs(s)), length(s) ), rep(0.1,3))
 r<-spg(
         fn=lik.nap,
         y=y,
@@ -215,15 +164,38 @@ r<-spg(
         m_=m,
         A=G,
         mod=argv$m,
-        epi=argv$e,
-        control=list(maxit=100),
+        e=argv$e,
+        # control=list(maxit=100),
+        control=list(maxit=20),
         par = parstart ,
         lower = parlow,
         upper=parhigh
 )
-
+r<-optimx(fn=lik.nap,
+          y=y,
+          h_=hall,
+          m_=m,
+          A=G,
+          mod=argv$m,
+          e=argv$e,
+          par = parstart ,
+          lower = parlow,
+          upper=parhigh,
+          control=list(
+                      trace=1,
+                      maxit=20
+                          ),
+          method = "L-BFGS-B"
+          )
 r
+
+
+
+####************************************************************************####
 #### Get inferences
+#### Get inferences
+realsvar<- ifelse(grepl("svar0.01", argv$p),0.01,0.1)
+sreal=ssimC(m,svar=realsvar)
 sinf<-moiR::fn(r[1,1:length(s)])
 sinf<-moiR::fn(r$par[1:length(s)])
 winf=wCBM(A = G@address,
@@ -234,12 +206,12 @@ winf=wCBM(A = G@address,
                       epi=argv$e
           )
 wgwa=wCBM(A = G@address,
-                      # s=bslmm,
-                      # mycols=1:ncol(G),
                       # s=gammas$effect,
                       # mycols=mapping,
-                      s=s,
-                      mycols=m,
+                      s=bslmm,
+                      mycols=1:ncol(G),
+                      # s=s,
+                      # mycols=m,
                       # s=bslmm[m],
                       # s=alphas[m],
                       # s=betas[m],
@@ -248,24 +220,7 @@ wgwa=wCBM(A = G@address,
                       epi=1
           )
 
-####************************************************************************####
-#### Get inferences
-realsvar<- ifelse(grepl("svar0.01", argv$p),0.01,0.1)
-sreal=ssimC(m,svar=realsvar)
-sinf<-moiR::fn(r[1,1:length(s)])
-winf=wCBM(A = G@address,
-                      s=sinf,
-                      mycols=m,
-                      myrows= hall,
-                      mode=1,
-                      epi=1
-          )
-wgwa=wCBM(A = G@address,
-                      s=s,
-                      mycols=m,
-                      myrows= hall,
-                      mode=1)
-saveRDS(file = finalrda,object = list(r,winf,sinf))
+saveRDS(file = finalrda,object = list(r,winf,sinf,wgwa,bslmm))
 
 #### plot
 
@@ -273,15 +228,15 @@ plotresults<-plot_grid(labels=c("ML","BSLMM"),ncol=1,
         indplot(y,winf)$pind  ,
         indplot(y,wgwa)$pind
         )
-save_plot(paste0("figs/",bname,"_indplot.pdf"),
-          plotresults,base_height = 2*5,base_width = 5)
-
-
 plotresults2<-plot_grid(labels=c("ML","BSLMM"), ncol=1,
                         scorplot(sreal,sinf)$psel         ,
                         scorplot(sreal,s)$psel
               )
-save_plot(paste0("figs/",bname,"_splot.pdf"),
+
+save_plot(paste0("figs/",bname,"_indplot","_l",argv$l,"_m",argv$m,"_e",argv$e ,".pdf"),
+          plotresults,base_height = 2*5,base_width = 5)
+
+save_plot(paste0("figs/",bname,"_splot","_l",argv$l,"_m",argv$m,"_e",argv$e ,".pdf"),
           plotresults2,base_height = 2*5,base_width = 5)
 
 
@@ -342,3 +297,65 @@ save_plot(paste0("figs/",bname,"_splot.pdf"),
 
 # ####************************************************************************####
 # ####************************************************************************####
+
+
+####************************************************************************####
+# #### Optimization ####
+# start_time <- Sys.time()
+# print(paste("Starting optimiztion on", start_time))
+# w=wCBM(A = G@address,
+#           s=s,
+#           mycols =m,
+#           myrows =hall,
+#           mode=1,
+#           epi=1)
+# # plot(w,y)
+# likelihoodR(y = y,
+#             w = w,
+#             b=0.5,
+#             a=0.5,
+#             p=0)
+#
+# parstart<-list(
+#                 "s"=s,
+#                 "b"=0.5,
+#                 "a"=0.5,
+#                 "p"=0
+#                 ) %>% unlist
+# parlow<- list(
+#               "s"=slow,
+#               "b"=0.01,
+#               "a"=0.01,
+#               "p"=0
+#               ) %>% unlist
+# parhigh<- list(
+#               "s"=shigh,
+#               "b"=1,
+#               "a"=1,
+#               "p"=1
+#               )%>% unlist
+# myscale<-c( rep(median(abs(s)), length(s) ), rep(0.1,3))
+# r<-optimx(fn=lik.nap,
+#       y=y,
+#       h_=hall,
+#       m_=m,
+#       A=G,
+#       mod=argv$m,
+#       e=argv$e,
+#       par = parstart ,
+#       lower = parlow,
+#       upper=parhigh,
+#       control=list(
+#                   trace=1,
+#                   fnscale=myscale,
+#                   maxit=20
+#                       ),
+#       method = "spg"
+#       # method ="BFGS"
+#       # method = "L-BFGS-B"
+#       # method = "CG"
+#       )
+# r
+# end_time<-Sys.time()
+# message("Ending optimiztion ")
+# print(end_time - start_time)
