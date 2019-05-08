@@ -16,14 +16,16 @@ library(moiR)
 library(nap)
 
 ####************************************************************************####
+#### PCA ####
+
 ### Load simulated
-fam<-read.table("databig/simexample.fam",header=T)
+fam<-read.table("../databig/simexample.fam",header=T)
 fam<-fam[,6:ncol(fam)]
 for(i in 1:ncol(fam)){
   fam[,i]<-sort(fam[,i])
 }
 fam[,ncol(fam)] %>% plot
-siminfo<-read.csv("databig/simulationgrid.tsv",header=T)
+siminfo<-read.csv("../databig/simulationgrid.tsv",header=T)
 colnames(fam)<-paste0("fam",1:ncol(fam))
 head(fam)
 tail(fam)
@@ -31,13 +33,13 @@ tail(fam)
 summary(fam)
 
 ### Load simulated fitness with LD
-lfam<-read.table("databig/ldsimexample.fam",header=T)
+lfam<-read.table("../databig/ldsimexample.fam",header=T)
 lfam<-lfam[,6:ncol(lfam)]
 for(i in 1:ncol(lfam)){
   lfam[,i]<-sort(lfam[,i])
 }
 lfam[,ncol(lfam)] %>% plot
-ldsiminfo<-read.csv("databig/simulationgrid.tsv",header=T)
+ldsiminfo<-read.csv("../databig/simulationgrid.tsv",header=T)
 colnames(lfam)<-paste0("lfam",1:ncol(lfam))
 head(lfam)
 tail(lfam)
@@ -45,13 +47,12 @@ tail(lfam)
 summary(lfam)
 
 ### Load real fitness
-fit<-sapply(paste0("databig/rFitness_",fieldcodes(),"/515g.fam"), FUN=function(x)read.table(x)[,6])
+fit<-sapply(paste0("../databig/rFitness_",fieldcodes(),"/515g.fam"), FUN=function(x)read.table(x)[,6])
 for(i in 1:ncol(fit)){
   fit[,i]<-sort(fit[,i])
   fit[,i][ fit[,i]< 0 ] <-0
   fit[,i][ fit[,i] == -9 ] <-0
 }
-
 summary(fit)
 
 ####************************************************************************####

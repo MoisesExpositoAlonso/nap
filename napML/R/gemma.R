@@ -89,6 +89,7 @@
 
 
 
+
 ####************************************************************************####
 #### READING ####
 #' Get the base name
@@ -325,6 +326,34 @@ message(paste('running GEMMA command: ',command))
 }
 
 return(TRUE)
+}
+
+#' Title
+#'
+#' @param bfile
+#' @param emp
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pred_gemma<-function(
+                     predict=1,
+                     bfile="../gemma/rFitness_mhi/515g",
+                     epm="output/rFitness_mhi.param.txt",
+                     emu="output/rFitness_mhi.log.txt",
+                     o="rFitness_mhi-predict"
+                     ){
+  command<-paste("./gemma -bfile",bfile,
+                 "predict",predict,
+                 "-epm",epm,
+                 "-emu",emu,
+                 "-o",o
+                )
+ # gemma -bfile ../gemma/rFitness_mhi/515g -epm output/rFitness_mhi.param.txt -emu output/rFitness_mhi.log.txt  -o rFitness_mhi -predict 1
+  # system(command)
+  print(command)
+  return(TRUE)
 }
 
 

@@ -437,14 +437,20 @@ double LIKELIHOOD(const arma::vec & y, // worked in previous iteration
                   const double & epi,
                   bool verbose=false,
                   bool printall=false){
+    // double lowest=MIN_NUM/y.n_elem;
+    double lowest= -1e12/y.n_elem;
+    int countinf=0;
     double L=0;
     double LL;
       for(int i=0; i< y.n_elem ; i ++){ // check for infinity
         LL= LLGaussMix(y(i)/mu,w(i),w(i)*b+a,p);
-        if(!std::isnan(LL)) L += LL; // if there is one nan, all sum is nan
+        if(!std::isnan(LL)) LL=lowest;
+        if(!std::isinf(LL)) LL=lowest; countinf++;
+        L += LL; // if there is one nan, all sum is nan
       }
+  cout << "# inf likelihoods " << countinf << endl;
   if(verbose) cout<< L << endl;
-  if(std::isinf(L)) L=MIN_NUM;
+  // if(std::isinf(L)) L=MIN_NUM;
   return(L);
 }
 
@@ -537,72 +543,73 @@ arma::vec wCBM(SEXP A, // worked in previous iteration
 
 
 
-// [[Rcpp::export]]
-void wCBMupdate(arma::vec wnew,
-                SEXP A,
-                const arma::uvec & mycols,
-                const arma::uvec & myrows,
-                const int & indecito,
-                const double & s0,
-                const double & s1,
-                const int & mode){
-        Rcpp::XPtr<BigMatrix> bigMat(A);
-        MatrixAccessor<double> macc(*bigMat);
-        double val=0;
-        for(int j=0; j < myrows.n_elem ; j++){
-          val= (macc[indecito][myrows(j)-1]) ;
-          unwupdate(wnew(j),s0, val, mode);
-          wupdate(wnew(j),s1,val, mode);
-         }
-  }
-// [[Rcpp::export]]
-arma::vec wCBMupdateforR(arma::vec wnew,
-                SEXP A,
-                const arma::uvec & mycols,
-                const arma::uvec & myrows,
-                const int & indecito,
-                const double & s0,
-                const double & s1,
-                const int & mode){
-  Rcpp::XPtr<BigMatrix> bigMat(A);
-        MatrixAccessor<double> macc(*bigMat);
-        double val=0;
-        for(int j=0; j < myrows.n_elem ; j++){
-          val= (macc[indecito][myrows(j)-1]) ;
-          unwupdate(wnew(j),s0, val, mode);
-          wupdate(wnew(j),s1,val, mode);
-         }
-  return(wnew);
-}
-// [[Rcpp::export]]
-arma::vec sampleWC(
-                    const arma::vec & w,
-                    const double & a,
-                    const double & b,
-                    const double & p,
-                    const int & rep
-                    ){
-  arma::vec y(w.n_elem * rep);
-  y.fill(0);
-  double val=0;
-  int count=0;
-  for(int i=0; i<w.n_elem ; i++){
-    for(int j=0; j<rep;j++){
-      val = Rcpp::rnorm(1,w(i), abs(a+(w(i)*b)))(0);
-      if(val<0) val=0;
-      if(Rcpp::runif(1)(0) < p ) val=0;
-      y[i] =val;
-      count++;
-    }
-  }
-  return(y);
-}
+// // [[Rcpp::export]]
+// void wCBMupdate(arma::vec wnew,
+//                 SEXP A,
+//                 const arma::uvec & mycols,
+//                 const arma::uvec & myrows,
+//                 const int & indecito,
+//                 const double & s0,
+//                 const double & s1,
+//                 const int & mode){
+//         Rcpp::XPtr<BigMatrix> bigMat(A);
+//         MatrixAccessor<double> macc(*bigMat);
+//         double val=0;
+//         for(int j=0; j < myrows.n_elem ; j++){
+//           val= (macc[indecito][myrows(j)-1]) ;
+//           unwupdate(wnew(j),s0, val, mode);
+//           wupdate(wnew(j),s1,val, mode);
+//          }
+//   }
+// // [[Rcpp::export]]
+// arma::vec wCBMupdateforR(arma::vec wnew,
+//                 SEXP A,
+//                 const arma::uvec & mycols,
+//                 const arma::uvec & myrows,
+//                 const int & indecito,
+//                 const double & s0,
+//                 const double & s1,
+//                 const int & mode){
+//   Rcpp::XPtr<BigMatrix> bigMat(A);
+//         MatrixAccessor<double> macc(*bigMat);
+//         double val=0;
+//         for(int j=0; j < myrows.n_elem ; j++){
+//           val= (macc[indecito][myrows(j)-1]) ;
+//           unwupdate(wnew(j),s0, val, mode);
+//           wupdate(wnew(j),s1,val, mode);
+//          }
+//   return(wnew);
+// }
+// // [[Rcpp::export]]
+// arma::vec sampleWC(
+//                     const arma::vec & w,
+//                     const double & a,
+//                     const double & b,
+//                     const double & p,
+//                     const int & rep
+//                     ){
+//   arma::vec y(w.n_elem * rep);
+//   y.fill(0);
+//   double val=0;
+//   int count=0;
+//   for(int i=0; i<w.n_elem ; i++){
+//     for(int j=0; j<rep;j++){
+//       val = Rcpp::rnorm(1,w(i), abs(a+(w(i)*b)))(0);
+//       if(val<0) val=0;
+//       if(Rcpp::runif(1)(0) < p ) val=0;
+//       y[i] =val;
+//       count++;
+//     }
+//   }
+//   return(y);
+// }
 
-// [[Rcpp::export]]
-bool ssaveC(arma::vec s, std::string path){
-  s.save(path,arma::raw_ascii);
-  return(wrap(true));
-}
+// // [[Rcpp::export]]
+// bool ssaveC(arma::vec s, std::string path){
+//   s.save(path,arma::raw_ascii);
+//   return(wrap(true));
+// }
+
 // // [[Rcpp::export]]
 // arma::vec ssimChardc(arma::uvec snps,
 //                 double svar){

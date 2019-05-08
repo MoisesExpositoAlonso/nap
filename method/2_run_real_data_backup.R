@@ -1,6 +1,5 @@
 ## Load packages
 library(optimx)
-library(BB)
 library(devtools)
 library(dplyr)
 library(ggplot2)
@@ -15,7 +14,6 @@ load_all('.')
 library(Rcpp)
 
 
-setwd("~/nap")
 
 ####************************************************************************####
 
@@ -73,7 +71,9 @@ ytest<-y[-h]
 
 
 ####************************************************************************####
-#### Inference ####
+
+# parstart<-runif(length(parlow),min = parlow,max = parhigh)
+# optim(fn=function(...){lik.nap(...,debug = T)},
 w=wCBM(A = G@address,
           s=s,
           mycols =m,
@@ -83,17 +83,9 @@ w=wCBM(A = G@address,
 plot(w,y)
 likelihoodR(y = y,
             w = w,
-            b=0.01,
-            a=0.01,
-            p=0) * (-1)
-lik.nap(y=y,
-        h_=hall,
-        m_=m,
-        A=G,
-        par=c(s,0.01,0.01,0),
-        mod=1,
-        e=1
-        )
+            b=0.5,
+            a=0.5,
+            p=0)
 
 parstart<-list(
                 "s"=s,
@@ -116,50 +108,75 @@ parhigh<- list(
               "p"=1
               )%>% unlist
 myscale<-c( rep(median(abs(s)), length(s) ), rep(0.1,3))
-# r<-optimx(fn=lik.nap,
-#       y=y,
-#       h_=hall,
-#       m_=m,
-#       A=G,
-#       mod=1,
-#       e=1,
-#       par = parstart ,
-#       lower = parlow,
-#       upper=parhigh,
-#       # control=list(
-#       #              trace=1,
-#       #               fnscale=myscale,
-#       #               # maxit=100#,
-#       #               maxit=20#,
-#       #                 ),
-#       # method = c("spg,L-BFGS-B")#
-#       method ="spg"
-#       # method ="BFGS"
-#       # method = "CG"
-#       # method = "L-BFGS-B"
-#       )
-# r
-
+r<-optimx(fn=lik.nap,
+      y=y,
+      h_=hall,
+      m_=m,
+      A=G,
+      mod=1,
+      e=1,
+      par = parstart ,
+      lower = parlow,
+      upper=parhigh,
+      control=list(
+                   trace=1,
+                    fnscale=myscale,
+                    maxit=100#,
+      #              pgtol=-1,
+      #              lmm=5, #default 5
+                  # all.methods=T
+      #              factr=1e-12
+                      ),
+      # method ="BFGS"
+      # method = "CG"
+      method = "spg"#
+      # method = "L-BFGS-B"
+      )
+r
+str(r)
 r<-spg(
-        fn=lik.nap,
-        y=y,
-        h_=hall,
-        m_=m,
-        A=G,
-        mod=1,
-        e=1,
-        control=list(maxit=20),
-        par = parstart ,
-        lower = parlow,
-        upper=parhigh
+fn=lik.nap,
+      y=y,
+      h_=hall,
+      m_=m,
+      A=G,
+      mod=2,
+      e=1,
+      par = parstart ,
+      lower = parlow,
+      upper=parhigh
 )
 
-r
+w=wCBM(A = G@address,
+          s=s,
+          mycols =m,
+          myrows =hall,
+          mode=1,
+          epi=1)
+plot(w,y)
+likelihoodR(y = y,
+            w = w,
+            b=0.5,
+            a=0.5,
+            p=0)
+
+length(r)
+
+as.data.frame(r)
+r[1,1:1000] %>% fn %>% hist
+r[2,1:1000] %>% fn %>% hist
+plot(r[2,1:1000],r[1,1:1000])
+
+cor(fn(r[1,1:1000]), s)
+# cor(fn(r[2,1:1000]), s)
+# plot(fn(r[2,1:1000]), s)
+
+
+
 #### Get inferences
 sinf<-moiR::fn(r[1,1:length(s)])
-sinf<-moiR::fn(r$par[1:length(s)])
 winf=wCBM(A = G@address,
-                      s=sinf,
+                      s=fn(s),
                       mycols=m,
                       myrows= hall,
                       mode=1,
@@ -180,6 +197,11 @@ wgwa=wCBM(A = G@address,
                       epi=1
           )
 
+plot(s, sinf)
+plot(wgwa, y)
+plot(winf, y)
+accuracies(winf, y)
+accuracies(wgwa, y)
 
 plotresults<-plot_grid(labels=c("ML","BSLMM"),ncol=1,
         indplot(y,winf)$pind  ,

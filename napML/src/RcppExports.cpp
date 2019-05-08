@@ -242,68 +242,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// wCBMupdate
-void wCBMupdate(arma::vec wnew, SEXP A, const arma::uvec& mycols, const arma::uvec& myrows, const int& indecito, const double& s0, const double& s1, const int& mode);
-RcppExport SEXP _nap_wCBMupdate(SEXP wnewSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP indecitoSEXP, SEXP s0SEXP, SEXP s1SEXP, SEXP modeSEXP) {
-BEGIN_RCPP
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type wnew(wnewSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
-    Rcpp::traits::input_parameter< const int& >::type indecito(indecitoSEXP);
-    Rcpp::traits::input_parameter< const double& >::type s0(s0SEXP);
-    Rcpp::traits::input_parameter< const double& >::type s1(s1SEXP);
-    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
-    wCBMupdate(wnew, A, mycols, myrows, indecito, s0, s1, mode);
-    return R_NilValue;
-END_RCPP
-}
-// wCBMupdateforR
-arma::vec wCBMupdateforR(arma::vec wnew, SEXP A, const arma::uvec& mycols, const arma::uvec& myrows, const int& indecito, const double& s0, const double& s1, const int& mode);
-RcppExport SEXP _nap_wCBMupdateforR(SEXP wnewSEXP, SEXP ASEXP, SEXP mycolsSEXP, SEXP myrowsSEXP, SEXP indecitoSEXP, SEXP s0SEXP, SEXP s1SEXP, SEXP modeSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type wnew(wnewSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type A(ASEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type mycols(mycolsSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type myrows(myrowsSEXP);
-    Rcpp::traits::input_parameter< const int& >::type indecito(indecitoSEXP);
-    Rcpp::traits::input_parameter< const double& >::type s0(s0SEXP);
-    Rcpp::traits::input_parameter< const double& >::type s1(s1SEXP);
-    Rcpp::traits::input_parameter< const int& >::type mode(modeSEXP);
-    rcpp_result_gen = Rcpp::wrap(wCBMupdateforR(wnew, A, mycols, myrows, indecito, s0, s1, mode));
-    return rcpp_result_gen;
-END_RCPP
-}
-// sampleWC
-arma::vec sampleWC(const arma::vec& w, const double& a, const double& b, const double& p, const int& rep);
-RcppExport SEXP _nap_sampleWC(SEXP wSEXP, SEXP aSEXP, SEXP bSEXP, SEXP pSEXP, SEXP repSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec& >::type w(wSEXP);
-    Rcpp::traits::input_parameter< const double& >::type a(aSEXP);
-    Rcpp::traits::input_parameter< const double& >::type b(bSEXP);
-    Rcpp::traits::input_parameter< const double& >::type p(pSEXP);
-    Rcpp::traits::input_parameter< const int& >::type rep(repSEXP);
-    rcpp_result_gen = Rcpp::wrap(sampleWC(w, a, b, p, rep));
-    return rcpp_result_gen;
-END_RCPP
-}
-// ssaveC
-bool ssaveC(arma::vec s, std::string path);
-RcppExport SEXP _nap_ssaveC(SEXP sSEXP, SEXP pathSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type s(sSEXP);
-    Rcpp::traits::input_parameter< std::string >::type path(pathSEXP);
-    rcpp_result_gen = Rcpp::wrap(ssaveC(s, path));
-    return rcpp_result_gen;
-END_RCPP
-}
 // ssimC
 arma::vec ssimC(arma::uvec snps, double svar);
 RcppExport SEXP _nap_ssimC(SEXP snpsSEXP, SEXP svarSEXP) {
@@ -392,10 +330,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nap_LIKELIHOOD", (DL_FUNC) &_nap_LIKELIHOOD, 9},
     {"_nap_wC", (DL_FUNC) &_nap_wC, 5},
     {"_nap_wCBM", (DL_FUNC) &_nap_wCBM, 7},
-    {"_nap_wCBMupdate", (DL_FUNC) &_nap_wCBMupdate, 8},
-    {"_nap_wCBMupdateforR", (DL_FUNC) &_nap_wCBMupdateforR, 8},
-    {"_nap_sampleWC", (DL_FUNC) &_nap_sampleWC, 5},
-    {"_nap_ssaveC", (DL_FUNC) &_nap_ssaveC, 2},
     {"_nap_ssimC", (DL_FUNC) &_nap_ssimC, 2},
     {"_nap_rowSumsC", (DL_FUNC) &_nap_rowSumsC, 1},
     {"_nap_allelesimCvec", (DL_FUNC) &_nap_allelesimCvec, 12},
